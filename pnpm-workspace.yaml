@@ -1,0 +1,7 @@
+packages:
+  - scoutboard-backend
+  - scoutboard-frontend
+
+allowBuilds:
+  sharp: true
+  unrs-resolver: false
