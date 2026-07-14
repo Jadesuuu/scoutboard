@@ -19,19 +19,8 @@ export class ListingsService {
   }
 
   addListing() {
-    return 
+    //
   }
 
-  // findOne(id: number) {
-  //   return `This action returns a #${id} listing`;
-  // }
-
-  // update(id: number, updateListingDto: UpdateListingDto) {
-  //   return `This action updates a #${id} listing`;
-  // }
-
-  // remove(id: number) {
-  //   return `This action removes a #${id} listing`;
-  // }
 }
 

@@ -5,6 +5,7 @@ import { AppService } from './app.service';
 import { ListingsModule } from './listings/listings.module';
 import { ConfigModule } from '@nestjs/config/dist/config.module';
 import { ConfigService } from '@nestjs/config';
+import { OffersModule } from './offers/offers.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { ConfigService } from '@nestjs/config';
       })
     }),
     ListingsModule,
+    OffersModule,
   ],
   controllers: [AppController],
   providers: [AppService],
