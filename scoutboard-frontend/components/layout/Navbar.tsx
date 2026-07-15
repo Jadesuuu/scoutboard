@@ -1,10 +1,9 @@
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/button";
 
 export default function Navbar() {
   return (
     <header className="sticky top-0 z-40 w-full border-b border-stone-200 bg-white">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
-
         {/* Logo */}
         <div className="flex items-center gap-2">
           <span className="h-2 w-2 rounded-full bg-[#c0603a]" />
@@ -20,8 +19,7 @@ export default function Navbar() {
             List your business
           </Button>
         </nav>
-
       </div>
     </header>
-  )
+  );
 }

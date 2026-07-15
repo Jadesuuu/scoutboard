@@ -6,23 +6,26 @@ import { CreateOfferDto } from './dto/create-offer.dto';
 
 @Injectable()
 export class OffersService {
-    constructor(@InjectModel(OfferRecord.name) private offerModel: Model<OfferRecord>) {}
+  constructor(
+    @InjectModel(OfferRecord.name) private offerModel: Model<OfferRecord>,
+  ) {}
 
-    create(listingId: string, offerDto: CreateOfferDto) {
-        this.assertValid(listingId);
-        return this.offerModel.create({...offerDto, listingId})
+  create(listingId: string, offerDto: CreateOfferDto) {
+    this.assertValid(listingId);
+    return this.offerModel.create({ ...offerDto, listingId });
+  }
+
+  private assertValid(id: string) {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid listing id');
     }
+  }
 
-    private assertValid(id: string) {
-        if (!Types.ObjectId.isValid(id)) {
-            throw new BadRequestException('Invalid listing id');
-        }
-    }
-
-    findForListing(listingId: string) {
-        this.assertValid(listingId);
-        return this.offerModel.find({ listingId }).sort({ createdAt: -1 }).limit(50);
-    }
-
-
+  findForListing(listingId: string) {
+    this.assertValid(listingId);
+    return this.offerModel
+      .find({ listingId })
+      .sort({ createdAt: -1 })
+      .limit(50);
+  }
 }

@@ -1,17 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { CreateListingDto } from './dto/create-listing.dto';
-import { UpdateListingDto } from './dto/update-listing.dto';
 import { ListingRecord } from './listing.schema';
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 
 @Injectable()
 export class ListingsService {
-
-  constructor(@InjectModel(ListingRecord.name) private listingModel: Model<ListingRecord>) {}
+  constructor(
+    @InjectModel(ListingRecord.name) private listingModel: Model<ListingRecord>,
+  ) {}
 
   create(listingDto: CreateListingDto) {
-    return this.listingModel.create(listingDto)
+    return this.listingModel.create(listingDto);
   }
 
   findAll() {
@@ -21,6 +21,4 @@ export class ListingsService {
   addListing() {
     //
   }
-
 }
-

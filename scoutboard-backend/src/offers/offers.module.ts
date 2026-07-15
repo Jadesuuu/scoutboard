@@ -5,7 +5,11 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { OfferRecord, OfferSchema } from './offer.schema';
 
 @Module({
-  imports: [MongooseModule.forFeature([{ name: OfferRecord.name, schema: OfferSchema}])],
+  imports: [
+    MongooseModule.forFeature([
+      { name: OfferRecord.name, schema: OfferSchema },
+    ]),
+  ],
   controllers: [OffersController],
   providers: [OffersService],
 })

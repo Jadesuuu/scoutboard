@@ -1,25 +1,29 @@
-"use client"
+"use client";
 
-import ListingCard from "@/components/listing/listingCard"
-import { colorFromString } from "@/lib/utils"
-import { useQuery } from "@tanstack/react-query"
+import ListingCard from "@/components/listing/listingCard";
+import { colorFromString } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
 
 interface Listing {
-  _id: string
-  title: string
-  industry: string
-  location: string
-  askingPrice: number
-  monthlyRevenue: number
-  description: string
-  createdAt: string
-  updatedAt: string
-  offers?: number // backend will add this later
+  _id: string;
+  title: string;
+  industry: string;
+  location: string;
+  askingPrice: number;
+  monthlyRevenue: number;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
+  offers?: number; // backend will add this later
 }
 
 export default function Home() {
-
-  const { data: listingData, isLoading: isListLoading, isError, error } = useQuery({
+  const {
+    data: listingData,
+    isLoading: isListLoading,
+    isError,
+    error,
+  } = useQuery({
     queryKey: ["businessList"],
     queryFn: async (): Promise<Listing[]> => {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/listings`);
@@ -30,13 +34,15 @@ export default function Home() {
       return await res.json();
     },
     // will add websocket later
-  })
+  });
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-10">
       {isListLoading && <p>loading...</p>}
       {isError && <p className="text-red-500">{(error as Error).message}</p>}
-      {!isListLoading && !isError && listingData?.length === 0 && <p>No listings found.</p>}
+      {!isListLoading && !isError && listingData?.length === 0 && (
+        <p>No listings found.</p>
+      )}
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {listingData?.map((listing) => (
@@ -48,5 +54,5 @@ export default function Home() {
         ))}
       </div>
     </div>
-  )
+  );
 }

@@ -1,29 +1,29 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
 
-@Schema({ timestamps: true }) 
+@Schema({ timestamps: true })
 export class ListingRecord {
-    @Prop({ required: true })
-    title: string;
+  @Prop({ required: true })
+  title: string;
 
-    @Prop({ required: true })
-    askingPrice: number;
+  @Prop({ required: true })
+  askingPrice: number;
 
-    @Prop({ required: true })
-    industry: string;
-    
-    @Prop({ required: true })
-    monthlyRevenue: number;
+  @Prop({ required: true })
+  industry: string;
 
-    @Prop({ required: true })
-    location: string;
+  @Prop({ required: true })
+  monthlyRevenue: number;
 
-    @Prop()
-    description: string;
+  @Prop({ required: true })
+  location: string;
 
-    createdAt?: Date;
-    updatedAt?: Date;
-}   
+  @Prop()
+  description: string;
 
-export type ListingDocument = HydratedDocument<ListingRecord>
-export const ListingRecordSchema = SchemaFactory.createForClass(ListingRecord)
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export type ListingDocument = HydratedDocument<ListingRecord>;
+export const ListingRecordSchema = SchemaFactory.createForClass(ListingRecord);
