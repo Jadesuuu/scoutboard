@@ -7,8 +7,8 @@ import {
 } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
-import Navbar from "@/components/layout/Navbar";
 import { Providers } from "./provider";
+import Navbar from "@/components/layout/navbar";
 
 const playfairDisplayHeading = Playfair_Display({
   subsets: ["latin"],

@@ -1,6 +1,6 @@
 "use client";
 
-import ListingCard from "@/components/listing/listingCard";
+import ListingCard from "@/components/listing/listing-card";
 import { colorFromString } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 
@@ -14,7 +14,9 @@ interface Listing {
   description: string;
   createdAt: string;
   updatedAt: string;
-  offers?: number; // backend will add this later
+  offersCount: number;
+  views: number;
+  establishedYear: number;
 }
 
 export default function Home() {

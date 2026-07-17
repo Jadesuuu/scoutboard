@@ -1,26 +1,31 @@
-import { IsIn, IsNumber, IsString, MaxLength, Min } from 'class-validator'
+import { IsIn, IsNumber, IsString, MaxLength, Min } from 'class-validator';
 
 export class CreateListingDto {
-    @IsString()
-    @MaxLength(120)
-    title: string;
+  @IsString()
+  @MaxLength(120)
+  title: string;
 
-    @IsNumber()
-    @Min(0)
-    askingPrice: number;
+  @IsNumber()
+  @Min(0)
+  askingPrice: number;
 
-    @IsIn(['food', 'retail', 'services', 'tech', 'others'])
-    industry: string;
+  @IsIn(['food', 'retail', 'services', 'tech', 'others'])
+  industry: string;
 
-    @IsNumber()
-    @Min(0)
-    monthlyRevenue: number;
+  @IsNumber()
+  @Min(0)
+  @MaxLength(4)
+  establishedYear: number;
 
-    @IsString()
-    @MaxLength(500)
-    location: string;
+  @IsNumber()
+  @Min(0)
+  monthlyRevenue: number;
 
-    @IsString()
-    @MaxLength(2000)
-    description: string;
+  @IsString()
+  @MaxLength(500)
+  location: string;
+
+  @IsString()
+  @MaxLength(2000)
+  description: string;
 }

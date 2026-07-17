@@ -9,13 +9,13 @@ import { OffersModule } from './offers/offers.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }), 
+    ConfigModule.forRoot({ isGlobal: true }),
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
-      inject: [ConfigService], 
+      inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        uri: config.get<string>('MONGODB_URI')
-      })
+        uri: config.get<string>('MONGODB_URI'),
+      }),
     }),
     ListingsModule,
     OffersModule,

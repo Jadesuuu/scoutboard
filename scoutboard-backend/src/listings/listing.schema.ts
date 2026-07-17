@@ -13,6 +13,9 @@ export class ListingRecord {
   industry: string;
 
   @Prop({ required: true })
+  establishedYear: number;
+
+  @Prop({ required: true })
   monthlyRevenue: number;
 
   @Prop({ required: true })
@@ -20,6 +23,12 @@ export class ListingRecord {
 
   @Prop()
   description: string;
+
+  @Prop({ default: 0 })
+  views: number;
+
+  @Prop({ default: 0 })
+  offersCount: number;
 
   createdAt?: Date;
   updatedAt?: Date;

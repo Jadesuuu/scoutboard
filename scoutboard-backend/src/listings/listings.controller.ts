@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param } from '@nestjs/common';
 import { ListingsService } from './listings.service';
 import { CreateListingDto } from './dto/create-listing.dto';
 // import { UpdateListingDto } from './dto/update-listing.dto';
@@ -15,5 +15,10 @@ export class ListingsController {
   @Get()
   findAll() {
     return this.listingsService.findAll();
+  }
+
+  @Get(':id')
+  async countViews(@Param('id') id: string) {
+    return this.listingsService.countViews(id);
   }
 }
