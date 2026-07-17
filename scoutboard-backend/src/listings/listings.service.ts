@@ -16,8 +16,16 @@ export class ListingsService {
     return this.listingModel.create(listingDto);
   }
 
-  findAll() {
-    return this.listingModel.find().sort({ createdAt: -1 }).limit(20);
+  async findAll() {
+    const cachedListings = await this.redis.get('listings');
+
+    if (cachedListings) {
+      return JSON.parse(cachedListings) as ListingRecord[];
+    }
+
+    const listings = this.listingModel.find().sort({ createdAt: -1 }).limit(20);
+    await this.redis.set('listings', JSON.stringify(await listings), 'EX', 60);
+    return listings;
   }
 
   async countViews(id: string) {

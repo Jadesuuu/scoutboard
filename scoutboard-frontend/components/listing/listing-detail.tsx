@@ -1,7 +1,10 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { OfferProps } from "../hooks/use-live-offer-updates";
+import {
+  OfferProps,
+  useLiveOfferUpdates,
+} from "../hooks/use-live-offer-updates";
 import { ListingCardProps } from "./listing-card";
 import { Card, CardContent } from "../ui/card";
 import { SpinnerEmpty } from "../ui/empty-content-spinner";
@@ -10,6 +13,8 @@ import { Button } from "../ui/button";
 import { timeAgo } from "@/lib/utils";
 
 export default function ListingDetail({ id }: { id: string }) {
+  useLiveOfferUpdates();
+
   const {
     data: listing,
     isLoading: isListingLoading,
@@ -142,9 +147,11 @@ export default function ListingDetail({ id }: { id: string }) {
           <Card className="rounded-lg border border-stone-200 bg-white w-80 h-60">
             <CardContent className="p-5 rounded-lg -mt-5">
               <p className="text-xs text-stone-400">Asking price</p>
-              <p className="mt-1 text-3xl font-bold text-stone-900">$145,000</p>
+              <p className="mt-1 text-3xl font-bold text-stone-900">
+                ${listing?.askingPrice?.toLocaleString()}
+              </p>
               <p className="mt-1 text-xs text-stone-400">
-                313 views · 2 offers
+                {listing?.views} views · {listing?.offersCount} offers
               </p>
 
               <Button className="mt-4 w-full bg-[#c0603a] text-white hover:bg-[#a85230] rounded-lg ">
