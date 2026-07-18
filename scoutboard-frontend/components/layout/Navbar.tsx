@@ -17,12 +17,17 @@ export default function Navbar() {
 
         {/* Nav */}
         <nav className="flex items-center gap-6">
-          <a href="#" className="text-sm font-medium text-stone-900">
+          <Link href="/" className="text-sm font-medium text-stone-900">
             Browse
-          </a>
-          <Button className="bg-[#c0603a] text-white hover:bg-[#a85230] rounded-lg">
-            List your business
-          </Button>
+          </Link>
+          <Link
+            href={"/create-listing"}
+            className="text-sm font-medium text-stone-900"
+          >
+            <Button className="bg-[#c0603a] text-white hover:bg-[#a85230] rounded-lg">
+              List your business
+            </Button>
+          </Link>
         </nav>
       </div>
     </header>
