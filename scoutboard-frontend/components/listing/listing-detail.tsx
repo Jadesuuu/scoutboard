@@ -1,19 +1,47 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import {
+  QueryClient,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   OfferProps,
   useLiveOfferUpdates,
 } from "../hooks/use-live-offer-updates";
 import { ListingCardProps } from "./listing-card";
-import { Card, CardContent } from "../ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "../ui/card";
 import { SpinnerEmpty } from "../ui/empty-content-spinner";
 import Link from "next/link";
 import { Button } from "../ui/button";
 import { timeAgo } from "@/lib/utils";
+import { useState } from "react";
+import { Input } from "@base-ui/react/input";
+import { toast } from "sonner";
+
+interface createOfferBody {
+  amount: number;
+  bidderName: string;
+}
 
 export default function ListingDetail({ id }: { id: string }) {
   useLiveOfferUpdates();
+
+  const queryClient = useQueryClient();
+
+  const [showOfferCard, setShowOfferCard] = useState<boolean>(false);
+  const [offerForm, setOfferForm] = useState<createOfferBody>({
+    amount: 0,
+    bidderName: "",
+  });
 
   const {
     data: listing,
@@ -47,11 +75,46 @@ export default function ListingDetail({ id }: { id: string }) {
     refetchOnWindowFocus: false,
   });
 
+  const { mutate: mutateOffer, isPending: isOfferPending } = useMutation({
+    mutationFn: async (formData: createOfferBody) => {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/listings/${id}/offers`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(formData),
+        },
+      );
+
+      if (!res.ok) throw new Error(`API Error: ${res.status}`);
+      return res.json();
+    },
+
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["offers", id] });
+      setOfferForm({
+        amount: 0,
+        bidderName: "",
+      });
+      toast.success("Successfully posted offer", {
+        position: "bottom-right",
+      });
+    },
+
+    onError: () => {
+      toast.error("Failed to post offer", {
+        position: "bottom-right",
+      });
+    },
+  });
+
   if (isListingLoading && isOfferLoading) return <SpinnerEmpty />;
   if (isListingError) return <p>Error loading listing details.</p>;
 
   return (
-    <div className="mx-auto w-6xl px-6 py-10">
+    <div className="mx-auto w-5xl px-6 py-10">
       {/* Back link */}
       <Link href="/" className="text-sm text-stone-400 hover:text-stone-600">
         ← Back to listings
@@ -117,7 +180,7 @@ export default function ListingDetail({ id }: { id: string }) {
 
           {/* Offers */}
           <div className="mt-8">
-            {listing?.offersCount === 0 ? (
+            {!offerData || offerData.length === 0 ? (
               <p className="text-sm text-stone-400">No offers yet.</p>
             ) : (
               <>
@@ -154,7 +217,10 @@ export default function ListingDetail({ id }: { id: string }) {
                 {listing?.views} views · {listing?.offersCount} offers
               </p>
 
-              <Button className="mt-4 w-full bg-[#c0603a] text-white hover:bg-[#a85230] rounded-lg ">
+              <Button
+                className="mt-4 w-full bg-[#c0603a] text-white hover:bg-[#a85230] rounded-lg "
+                onClick={() => setShowOfferCard(true)}
+              >
                 Make an offer
               </Button>
 
@@ -168,6 +234,91 @@ export default function ListingDetail({ id }: { id: string }) {
           </Card>
         </div>
       </div>
+
+      {/* add offer card */}
+      {showOfferCard && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          onClick={() => setShowOfferCard(false)}
+        >
+          <Card
+            className="w-105 rounded-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <CardHeader>
+              <CardTitle className="font-serif text-2xl font-normal">
+                Make an offer
+              </CardTitle>
+              <CardDescription>
+                on {listing?.title} · asking $
+                {listing?.askingPrice.toLocaleString()}
+              </CardDescription>
+            </CardHeader>
+
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-stone-900">
+                  Your name
+                </p>
+                <Input
+                  value={offerForm.bidderName}
+                  id="bidderName"
+                  onChange={(e) =>
+                    setOfferForm({ ...offerForm, bidderName: e.target.value })
+                  }
+                  className="pl-7 min-w-90 min-h-10 rounded-lg outline-2"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-stone-900">
+                  Your offer
+                </p>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-stone-400">
+                    $
+                  </span>
+                  <Input
+                    type="number"
+                    value={offerForm.amount}
+                    id="amount"
+                    className="pl-7 min-w-90 min-h-10 rounded-lg outline-2"
+                    onChange={(e) =>
+                      setOfferForm({
+                        ...offerForm,
+                        amount: Number(e.target.value),
+                      })
+                    }
+                  />
+                </div>
+              </div>
+            </CardContent>
+
+            <CardFooter className="gap-3">
+              <Button
+                className="flex-1 bg-[#c0603a] text-white hover:bg-[#a85230] rounded-lg"
+                disabled={isOfferLoading}
+                onClick={() => {
+                  mutateOffer(offerForm);
+                  setShowOfferCard(false);
+                }}
+              >
+                Submit offer
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowOfferCard(false);
+                  setOfferForm({ amount: 0, bidderName: "" });
+                }}
+                className="rounded-lg"
+              >
+                Cancel
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

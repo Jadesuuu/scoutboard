@@ -23,9 +23,10 @@ export class OffersService {
   ) {}
 
   async create(listingId: string, offerDto: CreateOfferDto) {
-    await this.checkRateLimit('global');
+    await this.checkRateLimit(listingId);
     this.assertValid(listingId);
     const newOffer = await this.offerModel.create({ ...offerDto, listingId });
+
     await this.listingModel.updateOne(
       { _id: listingId },
       { $inc: { offersCount: 1 } },

@@ -5,6 +5,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { ListingRecord, ListingRecordSchema } from './listing.schema';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
+import { ListingsGateway } from './listings.gateway';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import Redis from 'ioredis';
   controllers: [ListingsController],
   providers: [
     ListingsService,
+    ListingsGateway,
     {
       provide: 'REDIS_CLIENT',
       inject: [ConfigService],

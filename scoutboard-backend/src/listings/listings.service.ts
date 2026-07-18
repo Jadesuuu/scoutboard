@@ -4,16 +4,21 @@ import { ListingRecord } from './listing.schema';
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import Redis from 'ioredis';
+import { ListingsGateway } from './listings.gateway';
 
 @Injectable()
 export class ListingsService {
   constructor(
     @InjectModel(ListingRecord.name) private listingModel: Model<ListingRecord>,
     @Inject('REDIS_CLIENT') private redis: Redis,
+    private gateway: ListingsGateway,
   ) {}
 
-  create(listingDto: CreateListingDto) {
-    return this.listingModel.create(listingDto);
+  async create(listingDto: CreateListingDto) {
+    const newListing = await this.listingModel.create(listingDto);
+    await this.redis.del('listings');
+    this.gateway.broadcastListingUpdate(newListing.toObject());
+    return newListing;
   }
 
   async findAll() {
@@ -23,8 +28,11 @@ export class ListingsService {
       return JSON.parse(cachedListings) as ListingRecord[];
     }
 
-    const listings = this.listingModel.find().sort({ createdAt: -1 }).limit(20);
-    await this.redis.set('listings', JSON.stringify(await listings), 'EX', 60);
+    const listings = await this.listingModel
+      .find()
+      .sort({ createdAt: -1 })
+      .limit(20);
+    await this.redis.set('listings', JSON.stringify(listings), 'EX', 60);
     return listings;
   }
 

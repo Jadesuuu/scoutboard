@@ -17,7 +17,7 @@ export interface ListingCardProps {
 export default function ListingCard(Listing: ListingCardProps) {
   return (
     <Link href={`/listings/${Listing._id}`} className="block">
-      <div className="overflow-hidden rounded-xl border border-stone-200 bg-white cursor-pointer hover:border-stone-300 hover:shadow-md transition-all h-80">
+      <div className="overflow-hidden rounded-xl border border-stone-200 bg-white cursor-pointer hover:border-stone-300 hover:shadow-md transition-all min-h-80">
         {/* Thumbnail */}
         <div
           className="flex h-28 items-center justify-center"
