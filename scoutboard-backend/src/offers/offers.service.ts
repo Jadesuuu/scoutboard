@@ -112,7 +112,7 @@ export class OffersService {
   }
 
   @Cron(CronExpression.EVERY_5_MINUTES)
-  async cleanOfferAndViews() {
+  async reconcileOffersCounts() {
     const listings = await this.listingModel.find().select('_id offersCount');
     for (const listing of listings) {
       const trueCount = await this.offerModel.countDocuments({

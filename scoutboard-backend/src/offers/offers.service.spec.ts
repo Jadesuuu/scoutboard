@@ -292,6 +292,7 @@ describe('OffersService', () => {
 
       // An offer was created for the sampled listing...
       expect(offerModel.create).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       const createArg = offerModel.create.mock.calls[0][0] as {
         listingId: string;
         amount: number;
