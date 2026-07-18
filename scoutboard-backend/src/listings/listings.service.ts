@@ -55,6 +55,12 @@ export class ListingsService {
     return listings;
   }
 
+  async deleteById(id: string) {
+    await this.listingModel.findByIdAndDelete(id);
+    await this.offerModel.deleteMany({ listingId: id });
+    await this.redis.del('listings');
+  }
+
   async countViews(id: string) {
     const key = `listing:${id}:views`;
     const count = await this.redis.incr(key);

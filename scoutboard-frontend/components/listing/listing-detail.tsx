@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  QueryClient,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   OfferProps,
   useLiveOfferUpdates,
@@ -27,6 +22,7 @@ import { useState } from "react";
 import { Input } from "@base-ui/react/input";
 import { toast } from "sonner";
 import { Skeleton } from "../ui/skeleton";
+import { useRouter } from "next/navigation";
 
 interface createOfferBody {
   amount: number;
@@ -45,6 +41,7 @@ export default function ListingDetail({ id }: { id: string }) {
   useLiveOfferUpdates();
 
   const queryClient = useQueryClient();
+  const router = useRouter();
 
   const [showOfferCard, setShowOfferCard] = useState<boolean>(false);
   const [offerForm, setOfferForm] = useState<createOfferBody>({
@@ -139,6 +136,27 @@ export default function ListingDetail({ id }: { id: string }) {
     },
   });
 
+  const { mutate: mutateDelete, isPending: isDeleting } = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/listings/${id}/delete`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        },
+      );
+      if (!res.ok) throw new Error(`API Error: ${res.status}`);
+    },
+    onSuccess: () => {
+      toast.success("Successfully deleted business", {
+        position: "bottom-right",
+      });
+      router.back();
+    },
+  });
+
   if (isListingLoading && isOfferLoading) return <SpinnerEmpty />;
   if (isListingError) return <p>Error loading listing details.</p>;
 
@@ -173,6 +191,15 @@ export default function ListingDetail({ id }: { id: string }) {
                 {listing?.industry} · {listing?.location}
               </p>
             </div>
+            <Button
+              variant="outline"
+              id="delButton"
+              onClick={() => mutateDelete()}
+              disabled={isDeleting}
+              className="rounded-lg outline-red-500"
+            >
+              Delete
+            </Button>
           </div>
 
           {/* About */}

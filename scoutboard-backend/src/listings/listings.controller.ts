@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete } from '@nestjs/common';
 import { ListingsService } from './listings.service';
 import { CreateListingDto } from './dto/create-listing.dto';
 // import { UpdateListingDto } from './dto/update-listing.dto';
@@ -25,5 +25,10 @@ export class ListingsController {
   @Post(':id/analyze')
   async analyze(@Param('id') id: string) {
     return await this.listingsService.analyze(id);
+  }
+
+  @Delete(':id/delete')
+  async delete(@Param('id') id: string) {
+    return await this.listingsService.deleteById(id);
   }
 }
