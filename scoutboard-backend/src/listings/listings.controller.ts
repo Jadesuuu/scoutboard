@@ -21,4 +21,9 @@ export class ListingsController {
   async countViews(@Param('id') id: string) {
     return this.listingsService.countViews(id);
   }
+
+  @Post(':id/analyze')
+  async analyze(@Param('id') id: string) {
+    return await this.listingsService.analyze(id);
+  }
 }

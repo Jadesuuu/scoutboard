@@ -6,11 +6,15 @@ import { ListingRecord, ListingRecordSchema } from './listing.schema';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 import { ListingsGateway } from './listings.gateway';
+import { OfferRecord, OfferSchema } from 'src/offers/offer.schema';
+import { HttpModule } from '@nestjs/axios';
 
 @Module({
   imports: [
+    HttpModule,
     MongooseModule.forFeature([
       { name: ListingRecord.name, schema: ListingRecordSchema },
+      { name: OfferRecord.name, schema: OfferSchema },
     ]),
   ],
   controllers: [ListingsController],

@@ -26,10 +26,19 @@ import { timeAgo } from "@/lib/utils";
 import { useState } from "react";
 import { Input } from "@base-ui/react/input";
 import { toast } from "sonner";
+import { Skeleton } from "../ui/skeleton";
 
 interface createOfferBody {
   amount: number;
   bidderName: string;
+}
+
+interface AIAnalysisResult {
+  verdict: string;
+  fairValueLow: number;
+  fairValueHigh: number;
+  points: string[];
+  suggestedOffer: number;
 }
 
 export default function ListingDetail({ id }: { id: string }) {
@@ -75,7 +84,7 @@ export default function ListingDetail({ id }: { id: string }) {
     refetchOnWindowFocus: false,
   });
 
-  const { mutate: mutateOffer, isPending: isOfferPending } = useMutation({
+  const { mutate: mutateOffer } = useMutation({
     mutationFn: async (formData: createOfferBody) => {
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/listings/${id}/offers`,
@@ -110,11 +119,31 @@ export default function ListingDetail({ id }: { id: string }) {
     },
   });
 
+  const {
+    mutate: analyze,
+    data: analysis,
+    isPending: isAnalyzing,
+  } = useMutation({
+    mutationFn: async (): Promise<AIAnalysisResult> => {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/listings/${id}/analyze`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        },
+      );
+      if (!res.ok) throw new Error(`API Error: ${res.status}`);
+      return res.json();
+    },
+  });
+
   if (isListingLoading && isOfferLoading) return <SpinnerEmpty />;
   if (isListingError) return <p>Error loading listing details.</p>;
 
   return (
-    <div className="mx-auto w-5xl px-6 py-10">
+    <div className="mx-auto w-6xl px-6 py-10">
       {/* Back link */}
       <Link href="/" className="text-sm text-stone-400 hover:text-stone-600">
         ← Back to listings
@@ -206,9 +235,9 @@ export default function ListingDetail({ id }: { id: string }) {
         </div>
 
         {/* RIGHT COLUMN - Sidebar */}
-        <div className="w-64 shrink-0 mt-30">
-          <Card className="rounded-lg border border-stone-200 bg-white w-80 h-60">
-            <CardContent className="p-5 rounded-lg -mt-5">
+        <div className="w-80 shrink-0">
+          <Card className="rounded-lg border border-stone-200 bg-white">
+            <CardContent className="p-5">
               <p className="text-xs text-stone-400">Asking price</p>
               <p className="mt-1 text-3xl font-bold text-stone-900">
                 ${listing?.askingPrice?.toLocaleString()}
@@ -218,7 +247,7 @@ export default function ListingDetail({ id }: { id: string }) {
               </p>
 
               <Button
-                className="mt-4 w-full bg-[#c0603a] text-white hover:bg-[#a85230] rounded-lg "
+                className="mt-4 w-full bg-[#c0603a] text-white hover:bg-[#a85230] rounded-lg"
                 onClick={() => setShowOfferCard(true)}
               >
                 Make an offer
@@ -226,10 +255,64 @@ export default function ListingDetail({ id }: { id: string }) {
 
               <Button
                 variant="outline"
-                className="mt-1 w-full text-sm text-[#c0603a] rounded-lg"
+                className="mt-2 w-full text-sm text-[#c0603a] rounded-lg"
+                onClick={() => analyze()}
+                disabled={isAnalyzing}
               >
                 ✦ Analyze with AI
               </Button>
+
+              {/* Loading skeletons */}
+              {isAnalyzing && (
+                <div className="mt-5 border-t border-stone-100 pt-5">
+                  <p className="text-xs font-semibold tracking-wide text-[#c0603a]">
+                    ✦ AI ANALYSIS
+                  </p>
+                  <Skeleton className="mt-3 h-7 w-32 rounded-full" />{" "}
+                  {/* verdict badge */}
+                  <Skeleton className="mt-4 h-3 w-24" />{" "}
+                  {/* "Estimated fair value" */}
+                  <Skeleton className="mt-2 h-6 w-44" /> {/* price range */}
+                  <div className="mt-4 space-y-2">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-5/6" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-4/6" />
+                  </div>
+                </div>
+              )}
+
+              {/* Loaded analysis */}
+              {analysis && !isAnalyzing && (
+                <div className=" pt-5">
+                  <p className="text-xs font-semibold tracking-wide text-[#c0603a]">
+                    ✦ AI ANALYSIS
+                  </p>
+                  <span className="mt-3 inline-block rounded-full bg-stone-100 px-3 py-1 text-sm font-semibold text-stone-700">
+                    {analysis.verdict}
+                  </span>
+                  <p className="mt-4 text-xs text-stone-400">
+                    Estimated fair value
+                  </p>
+                  <p className="text-lg font-bold text-stone-900">
+                    ${analysis.fairValueLow.toLocaleString()} – $
+                    {analysis.fairValueHigh.toLocaleString()}
+                  </p>
+                  <ul className="mt-3 space-y-2">
+                    {analysis.points.map((point, i) => (
+                      <li key={i} className="flex gap-2 text-sm text-stone-600">
+                        <span className="text-[#c0603a]">•</span>
+                        {point}
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mt-2 flex gap-2 text-sm text-stone-600">
+                    <span className="text-[#c0603a]">•</span>
+                    Suggested opening offer: $
+                    {analysis.suggestedOffer.toLocaleString()}
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
