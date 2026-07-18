@@ -1,4 +1,4 @@
-import { IsIn, IsNumber, IsString, MaxLength, Min } from 'class-validator';
+import { IsIn, IsNumber, IsString, Max, MaxLength, Min } from 'class-validator';
 
 export class CreateListingDto {
   @IsString()
@@ -13,8 +13,8 @@ export class CreateListingDto {
   industry: string;
 
   @IsNumber()
-  @Min(0)
-  @MaxLength(4)
+  @Min(1900)
+  @Max(9999)
   establishedYear: number;
 
   @IsNumber()
