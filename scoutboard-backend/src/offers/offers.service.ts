@@ -12,6 +12,21 @@ import { CreateOfferDto } from './dto/create-offer.dto';
 import redis from 'ioredis';
 import { ListingRecord } from 'src/listings/listing.schema';
 import { OffersGateway } from './offers.gateway';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { ConfigService } from '@nestjs/config';
+
+interface ListingProps {
+  _id: string;
+  title: string;
+  industry: string;
+  location: string;
+  askingPrice: number;
+  monthlyRevenue: number;
+  description: string;
+  views: number;
+  offersCount: number;
+  establishedYear: number;
+}
 
 @Injectable()
 export class OffersService {
@@ -20,6 +35,7 @@ export class OffersService {
     @InjectModel(ListingRecord.name) private listingModel: Model<ListingRecord>,
     @Inject('REDIS_CLIENT') private redis: redis,
     private gateway: OffersGateway,
+    private config: ConfigService,
   ) {}
 
   async create(listingId: string, offerDto: CreateOfferDto) {
@@ -62,6 +78,53 @@ export class OffersService {
         'Too many requests',
         HttpStatus.TOO_MANY_REQUESTS,
       );
+    }
+  }
+
+  @Cron(CronExpression.EVERY_5_MINUTES)
+  async scheduledRandomOffer() {
+    if (this.config.get<string>('SIMULATOR_ENABLED') !== 'true') return;
+
+    const [randomListing]: ListingProps[] = await this.listingModel.aggregate([
+      {
+        $sample: { size: 1 },
+      },
+    ]);
+
+    if (!randomListing) return;
+    const names = [
+      'Mark James',
+      'Ren Don',
+      'Jane Doe',
+      'Robert Sylas',
+      'Jett Fizz',
+      'Oner Halp',
+    ];
+    const bidderName = names[Math.floor(Math.random() * names.length)];
+    const amount = Math.round(
+      randomListing.askingPrice * (0.6 + Math.random() * 0.5),
+    );
+
+    await this.create(randomListing._id.toString(), { amount, bidderName });
+    await this.listingModel.findByIdAndUpdate(randomListing._id, {
+      $inc: { views: 1 },
+    });
+  }
+
+  @Cron(CronExpression.EVERY_5_MINUTES)
+  async cleanOfferAndViews() {
+    const listings = await this.listingModel.find().select('_id offersCount');
+    for (const listing of listings) {
+      const trueCount = await this.offerModel.countDocuments({
+        listingId: listing._id,
+      });
+      if (trueCount !== listing.offersCount) {
+        // ← only repair DRIFT
+        await this.listingModel.updateOne(
+          { _id: listing._id },
+          { $set: { offersCount: trueCount } },
+        );
+      }
     }
   }
 }

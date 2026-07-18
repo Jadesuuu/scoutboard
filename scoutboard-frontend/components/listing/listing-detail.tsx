@@ -217,7 +217,7 @@ export default function ListingDetail({ id }: { id: string }) {
             <div>
               <p className="text-xs text-stone-400">Monthly revenue</p>
               <p className="mt-1 text-sm font-semibold text-stone-900">
-                {listing?.monthlyRevenue?.toLocaleString()}
+                ${listing?.monthlyRevenue?.toLocaleString()}
               </p>
             </div>
             <div>
