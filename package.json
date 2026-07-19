@@ -5,7 +5,7 @@
     "dev": "pnpm -r --parallel dev",
     "lint": "pnpm -r lint",
     "build": "pnpm -r build",
-    "test": "pnpm --filter scoutboard-backend test"
+    "test": "pnpm -r test"
   },
   "devDependencies": {
     "typescript": "^5.9.3"
