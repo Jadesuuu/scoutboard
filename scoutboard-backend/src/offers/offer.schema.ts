@@ -1,9 +1,9 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Types } from 'mongoose';
+import { Schema as MongooseSchema, Types } from 'mongoose';
 
 @Schema({ timestamps: true })
 export class OfferRecord {
-  @Prop({ type: Types.ObjectId, ref: 'Listing', required: true })
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Listing', required: true })
   listingId: Types.ObjectId; // pointer, foreign key MONGO style
 
   @Prop({ required: true })

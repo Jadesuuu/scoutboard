@@ -189,7 +189,7 @@ describe('OffersService', () => {
         .mockResolvedValueOnce(5) // listingDrift true count
         .mockResolvedValueOnce(3); // listingOk true count
 
-      await service.cleanOfferAndViews();
+      await service.reconcileOffersCounts();
 
       // countDocuments queried per listing by listingId.
       expect(offerModel.countDocuments).toHaveBeenCalledWith({
@@ -225,7 +225,7 @@ describe('OffersService', () => {
         .mockResolvedValueOnce(1) // matches listingA
         .mockResolvedValueOnce(4); // matches listingB
 
-      await service.cleanOfferAndViews();
+      await service.reconcileOffersCounts();
 
       expect(offerModel.countDocuments).toHaveBeenCalledTimes(2);
       expect(listingModel.updateOne).not.toHaveBeenCalled();

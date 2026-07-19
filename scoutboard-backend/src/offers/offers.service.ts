@@ -43,6 +43,7 @@ export class OffersService {
     await this.checkRateLimit(listingId);
     const newOffer = await this.offerModel.create({ ...offerDto, listingId });
     await this.redis.del(`listing:${listingId}:analyze`);
+    await this.redis.del('listings');
 
     await this.listingModel.updateOne(
       { _id: listingId },
@@ -119,7 +120,6 @@ export class OffersService {
         listingId: listing._id,
       });
       if (trueCount !== listing.offersCount) {
-        // ← only repair DRIFT
         await this.listingModel.updateOne(
           { _id: listing._id },
           { $set: { offersCount: trueCount } },
