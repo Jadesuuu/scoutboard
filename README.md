@@ -31,6 +31,16 @@ A realtime small-business marketplace: browse listings, make offers, watch them 
 
 **Deliberate rescopes, named.** The browse page is a card grid, not a data table — the right UI for a consumer marketplace (tables fit admin/backoffice views); sorting/filtering are client-side because the client holds the whole dataset at this size, and the migration path (server-side `manualSorting` + query params + indexed sort fields) is understood. The offer rate limit is currently a single shared bucket; keyed per-user is the correct production shape and lands with auth.
 
+## Prerequisites
+
+- **Node.js 20+** and **pnpm 10+**
+- **MongoDB** running locally (or any connection string — Atlas works)
+- **Redis** running locally
+  - Windows: [Memurai](https://www.memurai.com/) — a Redis-compatible service for Windows
+  - macOS: `brew install redis && brew services start redis`
+  - Linux: `sudo apt install redis-server`
+- An **OpenAI-compatible API key** for the summary endpoint (optional — the app runs without it; the summary endpoint returns a graceful fallback)
+
 ## Running locally
 
 ```bash
