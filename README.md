@@ -1,5 +1,7 @@
 # ScoutBoard
 
+**Live demo:** https://YOUR-VERCEL-URL.vercel.app — listings are seeded sample data, a simulator posts offers every few minutes, and the AI analyst runs on a small shared daily budget. First load after a quiet spell can take ~30 s while the free-tier API wakes up.
+
 A realtime small-business marketplace: browse listings, make offers, watch them land live. Built as a deliberate deep-dive into the stack I'm targeting professionally — NestJS, MongoDB, Redis, Socket.IO, Next.js, TanStack Query, and an LLM feature — with every architectural tradeoff made on purpose and named below.
 
 ## Stack
@@ -48,13 +50,28 @@ pnpm install
 
 # backend — needs MongoDB and Redis running locally
 cd scoutboard-backend
-cp .env.example .env        # MONGODB_URI, REDIS_URL, AI_BASE_URL, AI_MODEL, AI_API_KEY, SIMULATOR_ENABLED
+cp .env.example .env        # MONGODB_URI, REDIS_URL, AI_*, SIMULATOR_ENABLED, CORS_ORIGIN, ADMIN_API_KEY
+cd ../scoutboard-frontend
+cp .env.example .env        # NEXT_PUBLIC_API_URL, NEXT_PUBLIC_DEMO_MODE
 cd ..
 
 pnpm -r --parallel dev      # backend :3000, frontend :3001
+pnpm --filter scoutboard-backend seed   # 12 realistic listings via the real POST /listings endpoint
 ```
 
-Seed data: `POST /listings/bulk` accepts an array of listings (validated per-element via `ParseArrayPipe`) — dev seeding route, would be removed or guarded in production.
+## Deploying (Vercel + Render)
+
+The frontend is a normal Next.js app and deploys to **Vercel**. The API can't live there: Socket.IO needs a long-lived process and `@nestjs/schedule` needs a server that stays up, neither of which serverless functions provide. So the API runs on **Render** (or Railway/Fly), with **MongoDB Atlas** (free M0) and **Upstash** or **Redis Cloud** (free tier, `rediss://` works out of the box with ioredis).
+
+1. **Data stores.** Create an Atlas cluster (allow access from anywhere, Render's IPs rotate) and a Redis instance. Copy both connection strings.
+2. **API on Render.** New → Blueprint → this repo; `render.yaml` at the root defines the service. Fill in `MONGODB_URI`, `REDIS_URL`, `AI_API_KEY` (optional) and, after step 3, `CORS_ORIGIN`. `ADMIN_API_KEY` is auto-generated.
+3. **Frontend on Vercel.** Import the repo, set **Root Directory** to `scoutboard-frontend`, add `NEXT_PUBLIC_API_URL=https://<your-render-service>.onrender.com` and `NEXT_PUBLIC_DEMO_MODE=true`. Vercel picks up pnpm from the lockfile; set `ENABLE_EXPERIMENTAL_COREPACK=1` if it doesn't honour the `packageManager` pin.
+4. **Wire CORS.** Put the Vercel URL into the API's `CORS_ORIGIN` (comma-separate a custom domain or preview URL if needed). Both Express and the Socket.IO gateways read the same list.
+5. **Seed.** `API_URL=https://<render-url> pnpm --filter scoutboard-backend seed`.
+
+**Keeping the AI bill bounded on a public URL.** The key never leaves the API host. `AI_DAILY_LIMIT` caps *total* outbound completions per UTC day across all visitors (Redis `INCR` on a date-stamped key that self-expires); once spent, the endpoint returns a plain-language message instead of calling the model, and the UI shows it. `AI_CACHE_TTL_SECONDS` stretches the per-listing cache (24 h in the blueprint) so repeat clicks are free. Pair that with a hard monthly spend limit on the provider dashboard and a cheap model. Leave `AI_API_KEY` empty and the feature degrades to "not configured" without touching the network.
+
+**Public-safety switches.** `NEXT_PUBLIC_DEMO_MODE=true` shows the seeded-data banner and hides the Delete button; server-side, `ADMIN_API_KEY` makes `DELETE /listings/:id/delete` require a matching `x-admin-key` header, so a visitor can't wipe the seed set. Creating listings and offers stays open on purpose: the demo is meant to be used, and offers are already rate-limited.
 
 ## Tests & CI
 

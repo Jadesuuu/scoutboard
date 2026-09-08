@@ -9,6 +9,7 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Providers } from "./provider";
 import Navbar from "@/components/layout/navbar";
+import DemoBanner from "@/components/layout/demo-banner";
 import { Toaster } from "@/components/ui/sonner";
 
 const playfairDisplayHeading = Playfair_Display({
@@ -53,6 +54,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <Navbar />
+        <DemoBanner />
         <Providers>{children}</Providers>
         <Toaster />
       </body>

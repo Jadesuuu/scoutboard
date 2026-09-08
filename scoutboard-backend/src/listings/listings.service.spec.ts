@@ -27,6 +27,7 @@ describe('ListingsService', () => {
     set: jest.Mock;
     del: jest.Mock;
     incr: jest.Mock;
+    expire: jest.Mock;
   };
   let gateway: { broadcastListingUpdate: jest.Mock };
   let http: { post: jest.Mock };
@@ -49,6 +50,7 @@ describe('ListingsService', () => {
       set: jest.fn().mockResolvedValue('OK'),
       del: jest.fn().mockResolvedValue(1),
       incr: jest.fn(),
+      expire: jest.fn().mockResolvedValue(1),
     };
     gateway = { broadcastListingUpdate: jest.fn() };
     http = { post: jest.fn() };
@@ -224,6 +226,89 @@ describe('ListingsService', () => {
 
       expect(result).toEqual({ error: 'Could not parse analysis' });
       expect(mockRedis.set).not.toHaveBeenCalled();
+    });
+
+    it('skips the AI call and returns an error when no API key is configured', async () => {
+      seedDocs();
+      mockRedis.get.mockResolvedValue(null);
+      config.get.mockReturnValue(undefined);
+
+      const result = await service.analyze('l1');
+
+      expect(http.post).not.toHaveBeenCalled();
+      expect(result).toEqual({
+        error: 'AI analysis is not configured on this deployment.',
+      });
+    });
+
+    it('enforces the daily AI budget and stops calling the AI once it is spent', async () => {
+      seedDocs();
+      mockRedis.get.mockResolvedValue(null);
+      config.get.mockImplementation((key: string) =>
+        key === 'AI_DAILY_LIMIT' ? '2' : 'x',
+      );
+      http.post.mockReturnValue(
+        of({
+          data: { choices: [{ message: { content: '{"verdict":"ok"}' } }] },
+        }),
+      );
+
+      // 1st and 2nd calls: within budget. 3rd: over.
+      mockRedis.incr.mockResolvedValueOnce(1);
+      await service.analyze('l1');
+      mockRedis.incr.mockResolvedValueOnce(2);
+      await service.analyze('l1');
+      mockRedis.incr.mockResolvedValueOnce(3);
+      const overBudget = await service.analyze('l1');
+
+      expect(http.post).toHaveBeenCalledTimes(2);
+      expect(overBudget).toEqual({
+        error:
+          'The AI analysis demo has hit its daily budget. Try again tomorrow.',
+      });
+      // Counter is namespaced by UTC date and self-expires (set on first incr).
+      const day = new Date().toISOString().slice(0, 10);
+      expect(mockRedis.incr).toHaveBeenCalledWith(`ai:calls:${day}`);
+      expect(mockRedis.expire).toHaveBeenCalledTimes(1);
+      expect(mockRedis.expire).toHaveBeenCalledWith(
+        `ai:calls:${day}`,
+        60 * 60 * 48,
+      );
+    });
+
+    it('serves the cache without consuming budget or touching the database', async () => {
+      seedDocs();
+      mockRedis.get.mockResolvedValue(JSON.stringify({ verdict: 'cached' }));
+      config.get.mockImplementation((key: string) =>
+        key === 'AI_DAILY_LIMIT' ? '1' : 'x',
+      );
+
+      await service.analyze('l1');
+
+      expect(mockRedis.incr).not.toHaveBeenCalled();
+      expect(listingModel.findById).not.toHaveBeenCalled();
+    });
+
+    it('honours AI_CACHE_TTL_SECONDS when caching a fresh analysis', async () => {
+      seedDocs();
+      mockRedis.get.mockResolvedValue(null);
+      config.get.mockImplementation((key: string) =>
+        key === 'AI_CACHE_TTL_SECONDS' ? '86400' : 'x',
+      );
+      http.post.mockReturnValue(
+        of({
+          data: { choices: [{ message: { content: '{"verdict":"ok"}' } }] },
+        }),
+      );
+
+      await service.analyze('l1');
+
+      expect(mockRedis.set).toHaveBeenCalledWith(
+        'listing:l1:analyze',
+        '{"verdict":"ok"}',
+        'EX',
+        86400,
+      );
     });
   });
 });

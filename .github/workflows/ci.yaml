@@ -12,9 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: pnpm/action-setup@v6
-        with:
-          version: 10
+      - uses: pnpm/action-setup@v6 # version comes from root package.json "packageManager"
 
       - uses: actions/setup-node@v6
         with:
@@ -33,9 +31,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: pnpm/action-setup@v6
-        with:
-          version: 10
+      - uses: pnpm/action-setup@v6 # version comes from root package.json "packageManager"
 
       - uses: actions/setup-node@v6
         with:

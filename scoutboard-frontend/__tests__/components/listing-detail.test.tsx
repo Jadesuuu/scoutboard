@@ -301,6 +301,28 @@ describe("ListingDetail", () => {
       ).toBeInTheDocument();
     });
 
+    it("shows the API's message when AI is unavailable (no key / budget spent)", async () => {
+      stubFetch({
+        ...happyRoutes(),
+        "POST /listings/l1/analyze": () => ({
+          error: "The AI analysis demo has hit its daily budget. Try again tomorrow.",
+        }),
+      });
+      renderDetail();
+
+      fireEvent.click(
+        await screen.findByRole("button", { name: "✦ Analyze with AI" }),
+      );
+
+      expect(
+        await screen.findByText(
+          "The AI analysis demo has hit its daily budget. Try again tomorrow.",
+        ),
+      ).toBeInTheDocument();
+      expect(screen.getByText("✦ AI ANALYSIS")).toBeInTheDocument();
+      expect(screen.queryByText(/Estimated fair value/)).not.toBeInTheDocument();
+    });
+
     it("renders nothing extra when the analysis request fails", async () => {
       stubFetch({
         ...happyRoutes(),

@@ -1,0 +1,38 @@
+# Render Blueprint for the ScoutBoard API (NestJS + Socket.IO + cron).
+# The Next.js frontend is deployed separately on Vercel (root dir: scoutboard-frontend).
+#
+# Usage: Render dashboard → New → Blueprint → pick this repo. Fill in the
+# `sync: false` secrets when prompted. Free plan spins down after ~15 min idle,
+# so the first request after a quiet spell takes ~30-60 s to answer.
+services:
+  - type: web
+    name: scoutboard-api
+    runtime: node
+    plan: free
+    rootDir: .
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter scoutboard-backend build
+    startCommand: pnpm --filter scoutboard-backend start:prod
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: MONGODB_URI
+        sync: false # MongoDB Atlas SRV connection string
+      - key: REDIS_URL
+        sync: false # Upstash / Redis Cloud URL (rediss://...)
+      - key: AI_BASE_URL
+        value: https://api.openai.com/v1
+      - key: AI_MODEL
+        value: gpt-4o-mini
+      - key: AI_API_KEY
+        sync: false # leave empty to run the demo without AI
+      - key: AI_DAILY_LIMIT
+        value: "40" # total AI calls per UTC day across all visitors
+      - key: AI_CACHE_TTL_SECONDS
+        value: "86400"
+      - key: SIMULATOR_ENABLED
+        value: "true"
+      - key: CORS_ORIGIN
+        sync: false # e.g. https://scoutboard.vercel.app (comma-separate extras)
+      - key: ADMIN_API_KEY
+        generateValue: true # required as x-admin-key header to DELETE listings

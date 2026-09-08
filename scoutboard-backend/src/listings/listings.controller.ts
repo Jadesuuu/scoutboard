@@ -1,6 +1,15 @@
-import { Controller, Get, Post, Body, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Delete,
+  UseGuards,
+} from '@nestjs/common';
 import { ListingsService } from './listings.service';
 import { CreateListingDto } from './dto/create-listing.dto';
+import { AdminKeyGuard } from '../common/admin-key.guard';
 // import { UpdateListingDto } from './dto/update-listing.dto';
 
 @Controller('listings')
@@ -27,6 +36,7 @@ export class ListingsController {
     return await this.listingsService.analyze(id);
   }
 
+  @UseGuards(AdminKeyGuard)
   @Delete(':id/delete')
   async delete(@Param('id') id: string) {
     return await this.listingsService.deleteById(id);

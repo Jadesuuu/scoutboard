@@ -22,6 +22,19 @@ export interface AIAnalysisResult {
   suggestedOffer: number;
 }
 
+/** Returned instead of an analysis when the AI path is unavailable. */
+export interface AIAnalysisError {
+  error: string;
+}
+
+const DEFAULT_ANALYSIS_TTL_SECONDS = 3600;
+
+/** Parse a positive integer from config; anything else yields the fallback. */
+function positiveInt(value: unknown, fallback: number): number {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
+}
+
 @Injectable()
 export class ListingsService {
   constructor(
@@ -71,19 +84,48 @@ export class ListingsService {
     );
   }
 
-  async analyze(id: string) {
-    const listing = await this.listingModel.findById(id).lean();
-    const offers = await this.offerModel.find({ listingId: id }).lean();
+  /**
+   * Global daily cap on outbound AI calls, so a public demo can't run up the
+   * bill. AI_DAILY_LIMIT unset/0 means unlimited (local dev behaviour).
+   * Returns true when this call is within budget. The counter key rolls over
+   * with the UTC date and expires on its own two days later.
+   */
+  private async withinDailyBudget(): Promise<boolean> {
+    const limit = positiveInt(this.config.get('AI_DAILY_LIMIT'), 0);
+    if (limit === 0) return true;
 
-    const userContent = JSON.stringify({ listing, offers });
+    const day = new Date().toISOString().slice(0, 10);
+    const key = `ai:calls:${day}`;
+    const count = await this.redis.incr(key);
+    if (count === 1) {
+      await this.redis.expire(key, 60 * 60 * 48);
+    }
+    return count <= limit;
+  }
 
-    const cachedListingAnalization = await this.redis.get(
-      `listing:${id}:analyze`,
-    );
+  async analyze(id: string): Promise<AIAnalysisResult | AIAnalysisError> {
+    const cacheKey = `listing:${id}:analyze`;
+    const cachedListingAnalization = await this.redis.get(cacheKey);
 
     if (cachedListingAnalization) {
       return JSON.parse(cachedListingAnalization) as AIAnalysisResult;
     }
+
+    if (!this.config.get<string>('AI_API_KEY')) {
+      return { error: 'AI analysis is not configured on this deployment.' };
+    }
+
+    if (!(await this.withinDailyBudget())) {
+      return {
+        error:
+          'The AI analysis demo has hit its daily budget. Try again tomorrow.',
+      };
+    }
+
+    const listing = await this.listingModel.findById(id).lean();
+    const offers = await this.offerModel.find({ listingId: id }).lean();
+
+    const userContent = JSON.stringify({ listing, offers });
 
     try {
       const res = await firstValueFrom(
@@ -122,7 +164,11 @@ Respond ONLY with valid JSON, no markdown, no code fences, in exactly this shape
       const cleaned = raw.replace(/```json|```/g, '').trim();
 
       const result = JSON.parse(cleaned) as AIAnalysisResult;
-      await this.redis.set(`listing:${id}:analyze`, cleaned, 'EX', 3600);
+      const ttl = positiveInt(
+        this.config.get('AI_CACHE_TTL_SECONDS'),
+        DEFAULT_ANALYSIS_TTL_SECONDS,
+      );
+      await this.redis.set(cacheKey, cleaned, 'EX', ttl);
       return result;
     } catch {
       return { error: 'Could not parse analysis' };

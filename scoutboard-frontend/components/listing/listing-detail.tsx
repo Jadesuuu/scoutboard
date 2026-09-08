@@ -37,6 +37,19 @@ interface AIAnalysisResult {
   suggestedOffer: number;
 }
 
+/** The API answers with this shape when AI is unconfigured or over budget. */
+interface AIAnalysisError {
+  error: string;
+}
+
+type AnalyzeResponse = AIAnalysisResult | AIAnalysisError;
+
+const isAnalysisError = (r: AnalyzeResponse): r is AIAnalysisError =>
+  "error" in r;
+
+/** Public portfolio deployment: hide destructive controls from visitors. */
+const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
+
 export default function ListingDetail({ id }: { id: string }) {
   useLiveOfferUpdates();
 
@@ -121,7 +134,7 @@ export default function ListingDetail({ id }: { id: string }) {
     data: analysis,
     isPending: isAnalyzing,
   } = useMutation({
-    mutationFn: async (): Promise<AIAnalysisResult> => {
+    mutationFn: async (): Promise<AnalyzeResponse> => {
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/listings/${id}/analyze`,
         {
@@ -191,15 +204,17 @@ export default function ListingDetail({ id }: { id: string }) {
                 {listing?.industry} · {listing?.location}
               </p>
             </div>
-            <Button
-              variant="outline"
-              id="delButton"
-              onClick={() => mutateDelete()}
-              disabled={isDeleting}
-              className="rounded-lg outline-red-500"
-            >
-              Delete
-            </Button>
+            {!DEMO_MODE && (
+              <Button
+                variant="outline"
+                id="delButton"
+                onClick={() => mutateDelete()}
+                disabled={isDeleting}
+                className="rounded-lg outline-red-500"
+              >
+                Delete
+              </Button>
+            )}
           </div>
 
           {/* About */}
@@ -309,8 +324,18 @@ export default function ListingDetail({ id }: { id: string }) {
                 </div>
               )}
 
+              {/* AI unavailable (unconfigured / daily budget spent) */}
+              {analysis && !isAnalyzing && isAnalysisError(analysis) && (
+                <div className="pt-5">
+                  <p className="text-xs font-semibold tracking-wide text-[#c0603a]">
+                    ✦ AI ANALYSIS
+                  </p>
+                  <p className="mt-3 text-sm text-stone-500">{analysis.error}</p>
+                </div>
+              )}
+
               {/* Loaded analysis */}
-              {analysis && !isAnalyzing && (
+              {analysis && !isAnalyzing && !isAnalysisError(analysis) && (
                 <div className=" pt-5">
                   <p className="text-xs font-semibold tracking-wide text-[#c0603a]">
                     ✦ AI ANALYSIS
