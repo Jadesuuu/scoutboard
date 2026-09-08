@@ -1,6 +1,6 @@
 # ScoutBoard
 
-**Live demo:** https://YOUR-VERCEL-URL.vercel.app](https://scoutboard-scoutboard-frontend.vercel.app — listings are seeded sample data, a simulator posts offers every few minutes, and the AI analyst runs on a small shared daily budget. First load after a quiet spell can take ~30 s while the free-tier API wakes up.
+**Live demo:** https://scoutboard-scoutboard-frontend.vercel.app — listings are seeded sample data, a simulator posts offers every few minutes, and the AI analyst runs on a small shared daily budget. First load after a quiet spell can take ~30 s while the free-tier API wakes up.
 
 A realtime small-business marketplace: browse listings, make offers, watch them land live. Built as a deliberate deep-dive into the stack I'm targeting professionally — NestJS, MongoDB, Redis, Socket.IO, Next.js, TanStack Query, and an LLM feature — with every architectural tradeoff made on purpose and named below.
 
