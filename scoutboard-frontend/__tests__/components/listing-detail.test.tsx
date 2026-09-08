@@ -256,14 +256,27 @@ describe("ListingDetail", () => {
         await screen.findByRole("button", { name: "Make an offer" }),
       );
 
+      const backdrop = document.querySelector(".fixed.inset-0")!;
+      const insideCard = screen.getByText(/on Copper Kettle/);
+
       // Click inside the card: stays open (stopPropagation).
-      fireEvent.click(screen.getByText(/on Copper Kettle/));
+      fireEvent.mouseDown(insideCard);
+      fireEvent.click(insideCard);
       expect(
         screen.getByRole("button", { name: "Submit offer" }),
       ).toBeInTheDocument();
 
-      // Click the backdrop: closes.
-      const backdrop = document.querySelector(".fixed.inset-0")!;
+      // Drag that starts inside the card (e.g. selecting the amount) and is
+      // released over the backdrop: the browser fires click on the backdrop,
+      // but the modal must stay open.
+      fireEvent.mouseDown(document.getElementById("amount")!);
+      fireEvent.click(backdrop);
+      expect(
+        screen.getByRole("button", { name: "Submit offer" }),
+      ).toBeInTheDocument();
+
+      // A real click on the backdrop (press and release there): closes.
+      fireEvent.mouseDown(backdrop);
       fireEvent.click(backdrop);
       expect(
         screen.queryByRole("button", { name: "Submit offer" }),

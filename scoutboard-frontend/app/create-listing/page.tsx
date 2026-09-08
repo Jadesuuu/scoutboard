@@ -34,7 +34,11 @@ function validateForm(f: createListingBody) {
   if (!f.location.trim()) e.location = "Location is required";
   if (f.askingPrice <= 0) e.askingPrice = "Enter an asking price";
   if (f.monthlyRevenue <= 0) e.monthlyRevenue = "Enter monthly revenue";
-  if (f.establishedYear < 1900 || f.establishedYear > 2026)
+  if (
+    !Number.isInteger(f.establishedYear) ||
+    f.establishedYear < 1900 ||
+    f.establishedYear > new Date().getFullYear()
+  )
     e.establishedYear = "Enter a valid year";
   return e;
 }
@@ -190,12 +194,17 @@ export default function ListingForm() {
             <Input
               id="yearEstablished"
               placeholder="2000"
+              inputMode="numeric"
               maxLength={4}
-              min={1900}
-              value={form.establishedYear}
-              onChange={(e) =>
-                setForm({ ...form, establishedYear: Number(e.target.value) })
-              }
+              value={form.establishedYear === 0 ? "" : form.establishedYear}
+              onChange={(e) => {
+                // Digits only, max 4: typing letters used to produce NaN.
+                const digits = e.target.value.replace(/\D/g, "").slice(0, 4);
+                setForm({
+                  ...form,
+                  establishedYear: digits === "" ? 0 : Number(digits),
+                });
+              }}
             />
             {errors.establishedYear && (
               <p className="text-xs text-red-500">{errors.establishedYear}</p>

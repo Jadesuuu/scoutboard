@@ -107,6 +107,26 @@ describe("ListingForm", () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
+  it("ignores non-digit input in Year Established instead of showing NaN", () => {
+    vi.stubGlobal("fetch", vi.fn());
+    renderForm();
+    const year = screen.getByLabelText("Year Established") as HTMLInputElement;
+
+    // Starts blank (not "0") so the placeholder is visible.
+    expect(year.value).toBe("");
+
+    fireEvent.change(year, { target: { value: "20ab15" } });
+    expect(year.value).toBe("2015");
+
+    fireEvent.change(year, { target: { value: "abc" } });
+    expect(year.value).toBe("");
+    expect(year.value).not.toContain("NaN");
+
+    // Capped at four digits.
+    fireEvent.change(year, { target: { value: "201567" } });
+    expect(year.value).toBe("2015");
+  });
+
   it("rejects a year in the future", () => {
     vi.stubGlobal("fetch", vi.fn());
     renderForm();

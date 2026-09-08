@@ -19,7 +19,7 @@ import WakingUpNotice from "../ui/waking-up-notice";
 import Link from "next/link";
 import { Button } from "../ui/button";
 import { timeAgo } from "@/lib/utils";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Input } from "@base-ui/react/input";
 import { toast } from "sonner";
 import { Skeleton } from "../ui/skeleton";
@@ -58,6 +58,11 @@ export default function ListingDetail({ id }: { id: string }) {
   const router = useRouter();
 
   const [showOfferCard, setShowOfferCard] = useState<boolean>(false);
+  // True only while a mouse press that began on the backdrop itself is in
+  // flight. A drag that starts inside the card (e.g. selecting the amount)
+  // and releases over the backdrop fires a click on the backdrop, and must
+  // not close the modal.
+  const pressStartedOnBackdrop = useRef(false);
   const [offerForm, setOfferForm] = useState<createOfferBody>({
     amount: 0,
     bidderName: "",
@@ -380,7 +385,16 @@ export default function ListingDetail({ id }: { id: string }) {
       {showOfferCard && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-          onClick={() => setShowOfferCard(false)}
+          onMouseDown={(e) => {
+            pressStartedOnBackdrop.current = e.target === e.currentTarget;
+          }}
+          onClick={(e) => {
+            const releasedOnBackdrop = e.target === e.currentTarget;
+            if (releasedOnBackdrop && pressStartedOnBackdrop.current) {
+              setShowOfferCard(false);
+            }
+            pressStartedOnBackdrop.current = false;
+          }}
         >
           <Card
             className="w-105 rounded-2xl"
@@ -421,7 +435,9 @@ export default function ListingDetail({ id }: { id: string }) {
                   </span>
                   <Input
                     type="number"
-                    value={offerForm.amount}
+                    min={1}
+                    placeholder={listing?.askingPrice?.toString()}
+                    value={offerForm.amount === 0 ? "" : offerForm.amount}
                     id="amount"
                     className="pl-7 min-w-90 min-h-10 rounded-lg outline-2"
                     onChange={(e) =>
