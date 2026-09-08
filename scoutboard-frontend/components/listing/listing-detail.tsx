@@ -15,6 +15,7 @@ import {
   CardTitle,
 } from "../ui/card";
 import { SpinnerEmpty } from "../ui/empty-content-spinner";
+import WakingUpNotice from "../ui/waking-up-notice";
 import Link from "next/link";
 import { Button } from "../ui/button";
 import { timeAgo } from "@/lib/utils";
@@ -170,7 +171,12 @@ export default function ListingDetail({ id }: { id: string }) {
     },
   });
 
-  if (isListingLoading && isOfferLoading) return <SpinnerEmpty />;
+  if (isListingLoading && isOfferLoading)
+    return (
+      <WakingUpNotice>
+        <SpinnerEmpty />
+      </WakingUpNotice>
+    );
   if (isListingError) return <p>Error loading listing details.</p>;
 
   return (

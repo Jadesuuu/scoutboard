@@ -3,6 +3,7 @@
 import { ListingProps as Listing } from "@/components/hooks/use-live-listing-updates";
 import ListingCard from "@/components/listing/listing-card";
 import ListingRow from "@/components/listing/listing-row";
+import WakingUpNotice from "@/components/ui/waking-up-notice";
 import { colorFromString } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
@@ -77,7 +78,11 @@ export default function Home() {
         </div>
       </div>
 
-      {isListLoading && <p className="mt-6">loading...</p>}
+      {isListLoading && (
+        <WakingUpNotice>
+          <p className="mt-6">loading...</p>
+        </WakingUpNotice>
+      )}
       {isError && (
         <p className="mt-6 text-red-500">{(error as Error).message}</p>
       )}
