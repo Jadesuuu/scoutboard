@@ -13,7 +13,7 @@ import {
 import ListingPhoto, { ListingMonogram } from "./listing-photo";
 import VerifiedBadge from "./verified-badge";
 import FairValueBand from "./fair-value-band";
-import { SpinnerEmpty } from "../ui/empty-content-spinner";
+import ListingDetailSkeleton from "./listing-detail-skeleton";
 import WakingUpNotice from "../ui/waking-up-notice";
 import { Skeleton } from "../ui/skeleton";
 import { timeAgo } from "@/lib/utils";
@@ -197,14 +197,6 @@ export default function ListingDetail({ id }: { id: string }) {
   );
   const leadingOffer = offers[0];
 
-  if (isListingLoading && isOfferLoading)
-    return (
-      <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
-        <WakingUpNotice>
-          <SpinnerEmpty />
-        </WakingUpNotice>
-      </div>
-    );
   if (isListingError)
     return (
       <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
@@ -214,17 +206,21 @@ export default function ListingDetail({ id }: { id: string }) {
       </div>
     );
 
-  const metrics = listing
-    ? listingMetrics(listing)
-    : {
-        annualRevenue: null,
-        annualCashFlow: null,
-        askingMultiple: null,
-        cashFlowMultiple: null,
-        margin: null,
-      };
-  const industry = listing ? industryMeta(listing.industry) : null;
-  const offerCount = listing?.offersCount ?? offers.length;
+  // The listing is the page's subject — until it lands there is nothing for
+  // the rest of the page to hang off, so everything waits behind the skeleton.
+  if (isListingLoading || !listing)
+    return (
+      <div className="pb-6">
+        <ListingDetailSkeleton />
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <WakingUpNotice />
+        </div>
+      </div>
+    );
+
+  const metrics = listingMetrics(listing);
+  const industry = industryMeta(listing.industry);
+  const offerCount = listing.offersCount;
 
   return (
     <div className="animate-sb-fade-in pb-24 lg:pb-0">
@@ -238,27 +234,23 @@ export default function ListingDetail({ id }: { id: string }) {
             ← Back to listings
           </Link>
           <div className="flex flex-wrap items-center gap-3 sm:gap-4">
-            {listing && (
-              <ListingMonogram
-                listing={listing}
-                className="h-14 w-14 rounded-[15px] text-[23px] tracking-[-0.03em] sm:h-[68px] sm:w-[68px] sm:text-[29px]"
-              />
-            )}
+            <ListingMonogram
+              listing={listing}
+              className="h-14 w-14 rounded-[15px] text-[23px] tracking-[-0.03em] sm:h-[68px] sm:w-[68px] sm:text-[29px]"
+            />
             <div className="min-w-0 flex-1 basis-60">
               <div className="mb-1 flex flex-wrap items-center gap-2">
                 <h1 className="m-0 text-[clamp(25px,5vw,38px)] leading-none tracking-[-0.038em]">
-                  {listing?.title}
+                  {listing.title}
                 </h1>
-                {listing?.verified && (
+                {listing.verified && (
                   <VerifiedBadge variant="detail" label="Financials verified" />
                 )}
               </div>
-              {listing && (
-                <div className="text-quiet text-[13.5px]">
-                  {industry?.label} · {listing.location} · Established{" "}
-                  {listing.establishedYear}
-                </div>
-              )}
+              <div className="text-quiet text-[13.5px]">
+                {industry.label} · {listing.location} · Established{" "}
+                {listing.establishedYear}
+              </div>
             </div>
             {!DEMO_MODE && (
               <button
@@ -276,33 +268,31 @@ export default function ListingDetail({ id }: { id: string }) {
       </div>
 
       {/* Photo mosaic */}
-      {listing && (
-        <div className="mx-auto max-w-6xl px-4 pt-4 sm:px-6 sm:pt-6">
-          <div className="grid grid-cols-1 gap-2 overflow-hidden rounded-[14px] sm:grid-cols-3 sm:grid-rows-2">
-            <ListingPhoto
-              listing={listing}
-              index={0}
-              eager
-              sizes="(max-width: 640px) 100vw, 66vw"
-              className="min-h-48 sm:col-span-2 sm:row-span-2 sm:min-h-[clamp(190px,28vw,330px)]"
-            />
-            <ListingPhoto
-              listing={listing}
-              index={1}
-              showInitial={false}
-              sizes="(max-width: 640px) 100vw, 33vw"
-              className="hidden min-h-[90px] sm:block sm:min-h-[clamp(90px,13vw,161px)]"
-            />
-            <ListingPhoto
-              listing={listing}
-              index={2}
-              showInitial={false}
-              sizes="(max-width: 640px) 100vw, 33vw"
-              className="hidden min-h-[90px] sm:block sm:min-h-[clamp(90px,13vw,161px)]"
-            />
-          </div>
+      <div className="mx-auto max-w-6xl px-4 pt-4 sm:px-6 sm:pt-6">
+        <div className="grid grid-cols-1 gap-2 overflow-hidden rounded-[14px] sm:grid-cols-3 sm:grid-rows-2">
+          <ListingPhoto
+            listing={listing}
+            index={0}
+            eager
+            sizes="(max-width: 640px) 100vw, 66vw"
+            className="min-h-48 sm:col-span-2 sm:row-span-2 sm:min-h-[clamp(190px,28vw,330px)]"
+          />
+          <ListingPhoto
+            listing={listing}
+            index={1}
+            showInitial={false}
+            sizes="(max-width: 640px) 100vw, 33vw"
+            className="hidden min-h-[90px] sm:block sm:min-h-[clamp(90px,13vw,161px)]"
+          />
+          <ListingPhoto
+            listing={listing}
+            index={2}
+            showInitial={false}
+            sizes="(max-width: 640px) 100vw, 33vw"
+            className="hidden min-h-[90px] sm:block sm:min-h-[clamp(90px,13vw,161px)]"
+          />
         </div>
-      )}
+      </div>
 
       <div className="mx-auto flex max-w-6xl flex-wrap items-start gap-6 px-4 pt-6 pb-14 sm:px-6 sm:pt-8 md:gap-10">
         {/* Left column */}
@@ -327,7 +317,7 @@ export default function ListingDetail({ id }: { id: string }) {
             />
             <MetricTile
               label="Established"
-              value={listing ? String(listing.establishedYear) : "—"}
+              value={String(listing.establishedYear)}
             />
             <MetricTile
               label="Leading offer"
@@ -339,7 +329,7 @@ export default function ListingDetail({ id }: { id: string }) {
             About this business
           </h2>
           <p className="text-ink-soft m-0 mb-7 text-[16px] leading-relaxed text-pretty">
-            {listing?.description}
+            {listing.description}
           </p>
 
           {/* Offers */}
@@ -347,13 +337,11 @@ export default function ListingDetail({ id }: { id: string }) {
             <h2 className="m-0 text-[19px] tracking-[-0.028em]">
               Offer history
             </h2>
-            {listing && (
-              <span className="text-quiet text-[12.5px] font-semibold">
-                {leadingOffer
-                  ? `Leading offer ${money(leadingOffer.amount)} · ${percentOfAsk(leadingOffer.amount, listing.askingPrice)}`
-                  : "Open to first offer"}
-              </span>
-            )}
+            <span className="text-quiet text-[12.5px] font-semibold">
+              {leadingOffer
+                ? `Leading offer ${money(leadingOffer.amount)} · ${percentOfAsk(leadingOffer.amount, listing.askingPrice)}`
+                : "Open to first offer"}
+            </span>
           </div>
 
           {isOfferLoading && !offerData ? (
@@ -377,17 +365,15 @@ export default function ListingDetail({ id }: { id: string }) {
                   <span className="tabular text-[17px] font-extrabold tracking-[-0.028em]">
                     {money(offer.amount)}
                   </span>
-                  {listing && (
-                    <span
-                      className={`tabular inline-block rounded-full px-2.5 py-0.5 text-[11px] font-extrabold ${
-                        i === 0
-                          ? "bg-brand-tint-strong text-brand"
-                          : "bg-line-soft text-quiet"
-                      }`}
-                    >
-                      {percentOfAsk(offer.amount, listing.askingPrice)}
-                    </span>
-                  )}
+                  <span
+                    className={`tabular inline-block rounded-full px-2.5 py-0.5 text-[11px] font-extrabold ${
+                      i === 0
+                        ? "bg-brand-tint-strong text-brand"
+                        : "bg-line-soft text-quiet"
+                    }`}
+                  >
+                    {percentOfAsk(offer.amount, listing.askingPrice)}
+                  </span>
                   {i === 0 && offers.length > 1 && (
                     <span className="bg-brand rounded-full px-2.5 py-0.5 text-[10px] font-extrabold tracking-[0.05em] text-white uppercase">
                       Leading
@@ -410,10 +396,10 @@ export default function ListingDetail({ id }: { id: string }) {
                 Asking price
               </div>
               <div className="tabular text-[clamp(30px,5.5vw,37px)] leading-none font-extrabold tracking-[-0.04em]">
-                {listing ? money(listing.askingPrice) : "—"}
+                {money(listing.askingPrice)}
               </div>
               <div className="text-quiet mt-2.5 text-[12.5px]">
-                {watchingLabel(listing?.views)} · {offersLabelLower(offerCount)}
+                {watchingLabel(listing.views)} · {offersLabelLower(offerCount)}
               </div>
 
               <button
@@ -469,29 +455,20 @@ export default function ListingDetail({ id }: { id: string }) {
                   ✦ AI ANALYSIS
                 </p>
                 <span
-                  className={`inline-block rounded-full px-3 py-1.5 text-[12.5px] font-extrabold ${
-                    listing
-                      ? verdictTone(analysis, listing.askingPrice)
-                      : "bg-line-soft text-quiet"
-                  }`}
+                  className={`inline-block rounded-full px-3 py-1.5 text-[12.5px] font-extrabold ${verdictTone(
+                    analysis,
+                    listing.askingPrice,
+                  )}`}
                 >
                   {analysis.verdict}
                 </span>
 
                 <div className="mt-4">
-                  {listing && (
-                    <FairValueBand
-                      low={analysis.fairValueLow}
-                      high={analysis.fairValueHigh}
-                      askingPrice={listing.askingPrice}
-                    />
-                  )}
-                  {!listing && (
-                    <p className="tabular text-[18px] font-extrabold">
-                      {money(analysis.fairValueLow)} –{" "}
-                      {money(analysis.fairValueHigh)}
-                    </p>
-                  )}
+                  <FairValueBand
+                    low={analysis.fairValueLow}
+                    high={analysis.fairValueHigh}
+                    askingPrice={listing.askingPrice}
+                  />
                 </div>
 
                 <ul className="mt-4 list-none space-y-2.5 border-t border-[#e4e2da] p-0 pt-3.5">
@@ -529,7 +506,7 @@ export default function ListingDetail({ id }: { id: string }) {
             Asking
           </div>
           <div className="tabular text-[19px] font-extrabold tracking-[-0.035em]">
-            {listing ? money(listing.askingPrice) : "—"}
+            {money(listing.askingPrice)}
           </div>
         </div>
         <button
@@ -565,11 +542,11 @@ export default function ListingDetail({ id }: { id: string }) {
                 Make an offer
               </div>
               <div className="text-[20px] font-extrabold tracking-[-0.032em]">
-                {listing?.title}
+                {listing.title}
               </div>
               <div className="text-brand-on-dark mt-0.5 text-[12.5px]">
-                on {listing?.title} · asking{" "}
-                {listing ? money(listing.askingPrice) : "—"} ·{" "}
+                on {listing.title} · asking{" "}
+                {money(listing.askingPrice)} ·{" "}
                 {offersLabelLower(offerCount)}
               </div>
             </div>
@@ -602,7 +579,7 @@ export default function ListingDetail({ id }: { id: string }) {
                 <input
                   type="number"
                   min={1}
-                  placeholder={listing?.askingPrice?.toString()}
+                  placeholder={listing.askingPrice.toString()}
                   value={offerForm.amount === 0 ? "" : offerForm.amount}
                   id="amount"
                   className="tabular border-line-strong text-ink focus:border-brand w-full rounded-[10px] border-[1.5px] bg-white px-3.5 py-3.5 text-[25px] font-extrabold tracking-[-0.03em] focus:outline-none"
@@ -614,7 +591,7 @@ export default function ListingDetail({ id }: { id: string }) {
                   }
                 />
                 {/* Immediate feedback on how the offer reads against the ask. */}
-                {listing && offerForm.amount > 0 && (
+                {offerForm.amount > 0 && (
                   <p className="text-quiet text-[12.5px] font-semibold">
                     {percentOfAsk(offerForm.amount, listing.askingPrice)}
                     {offerForm.amount < listing.askingPrice &&

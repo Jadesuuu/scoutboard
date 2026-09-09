@@ -19,6 +19,6 @@ describe("Home (server render)", () => {
 
     // The Cards/Rows toggle renders with Cards active in the SSR output.
     expect(html).toContain("Cards");
-    expect(html).toContain("loading...");
+    expect(html).toContain("Loading listings");
   });
 });

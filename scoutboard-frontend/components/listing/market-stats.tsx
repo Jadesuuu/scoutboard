@@ -1,11 +1,22 @@
+import { Skeleton } from "@/components/ui/skeleton";
 import { listingMetrics, median, type Listing } from "@/lib/listing";
 import { multiple, shortMoney } from "@/lib/format";
 
 /**
  * The market summary strip under the hero. Medians rather than averages: one
  * unusually expensive listing shouldn't move the headline number.
+ *
+ * While the listings are in flight the values are skeletons rather than the
+ * zeros an empty array would compute to — a real "0 businesses listed" reads
+ * as a fact, and it would be the wrong one.
  */
-export default function MarketStats({ listings }: { listings: Listing[] }) {
+export default function MarketStats({
+  listings,
+  loading,
+}: {
+  listings: Listing[];
+  loading: boolean;
+}) {
   const askingPrices = listings.map((l) => l.askingPrice).filter(Boolean);
   const totalOffers = listings.reduce((sum, l) => sum + (l.offersCount ?? 0), 0);
 
@@ -31,9 +42,15 @@ export default function MarketStats({ listings }: { listings: Listing[] }) {
             <dt className="text-faint mb-1 text-[10.5px] font-extrabold tracking-[0.1em] uppercase">
               {stat.label}
             </dt>
-            <dd className="tabular text-[17px] font-extrabold tracking-[-0.025em] sm:text-[21px]">
-              {stat.value}
-            </dd>
+            {loading ? (
+              <dd className="m-0">
+                <Skeleton className="h-[21px] w-16 sm:h-[26px] sm:w-20" />
+              </dd>
+            ) : (
+              <dd className="tabular text-[17px] font-extrabold tracking-[-0.025em] sm:text-[21px]">
+                {stat.value}
+              </dd>
+            )}
           </div>
         ))}
       </dl>

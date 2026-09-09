@@ -177,7 +177,7 @@ export default function Home() {
         </div>
       </section>
 
-      <MarketStats listings={listings} />
+      <MarketStats listings={listings} loading={isListLoading} />
 
       {/* Listings */}
       <div
@@ -189,10 +189,15 @@ export default function Home() {
             <h2 className="m-0 text-[clamp(20px,3vw,26px)] tracking-[-0.03em]">
               Businesses for sale
             </h2>
-            <div className="text-quiet mt-1 text-[13px]">
-              {visible.length} {visible.length === 1 ? "business" : "businesses"}
-              {industry === "All" ? "" : ` in ${industryLabel}`}
-            </div>
+            {isListLoading ? (
+              <Skeleton className="mt-2 h-3.5 w-28" />
+            ) : (
+              <div className="text-quiet mt-1 text-[13px]">
+                {visible.length}{" "}
+                {visible.length === 1 ? "business" : "businesses"}
+                {industry === "All" ? "" : ` in ${industryLabel}`}
+              </div>
+            )}
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
@@ -260,7 +265,11 @@ export default function Home() {
 
         {isListLoading && (
           <WakingUpNotice>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div
+              role="status"
+              aria-label="Loading listings"
+              className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+            >
               {Array.from({ length: 6 }).map((_, i) => (
                 <div
                   key={i}
@@ -275,7 +284,6 @@ export default function Home() {
                 </div>
               ))}
             </div>
-            <p className="text-quiet mt-4 text-sm">loading...</p>
           </WakingUpNotice>
         )}
 

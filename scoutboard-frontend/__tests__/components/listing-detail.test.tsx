@@ -111,10 +111,12 @@ beforeEach(() => {
 });
 
 describe("ListingDetail", () => {
-  it("shows the spinner while both queries load", () => {
+  it("shows the skeleton while the listing loads", () => {
     vi.stubGlobal("fetch", vi.fn().mockReturnValue(new Promise(() => {})));
     renderDetail();
-    expect(screen.getByText("Processing your request")).toBeInTheDocument();
+    expect(
+      screen.getByRole("status", { name: "Loading listing" }),
+    ).toBeInTheDocument();
   });
 
   it("shows an error message when the listing query fails", async () => {
@@ -204,16 +206,22 @@ describe("ListingDetail", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders the page shell with optional fields blank while the listing loads", async () => {
-    // Offers resolve, listing hangs: page renders with listing undefined.
+  it("stays on the skeleton when the offers land before the listing", async () => {
+    // Offers resolve, listing hangs. The offers alone can't fill the page —
+    // there is no title, price or ask to measure them against — so the
+    // skeleton holds rather than flashing a half-empty shell.
     stubFetch({
       "GET /listings/l1/offers": () => OFFERS,
       "GET /listings/l1": () => new Promise(() => {}),
     });
     renderDetail();
 
-    expect(await screen.findByText("$90,000")).toBeInTheDocument();
-    expect(screen.getByText("← Back to listings")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        screen.getByRole("status", { name: "Loading listing" }),
+      ).toBeInTheDocument(),
+    );
+    expect(screen.queryByText("$90,000")).not.toBeInTheDocument();
   });
 
   describe("make an offer", () => {
