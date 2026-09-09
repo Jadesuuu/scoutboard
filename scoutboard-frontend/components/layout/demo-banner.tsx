@@ -6,12 +6,9 @@ export default function DemoBanner() {
   if (process.env.NEXT_PUBLIC_DEMO_MODE !== "true") return null;
 
   return (
-    <div
-      role="note"
-      className="w-full border-b border-amber-200 bg-amber-50 text-amber-900"
-    >
-      <p className="mx-auto max-w-6xl px-6 py-2 text-xs">
-        <span className="font-semibold">Portfolio demo.</span> Listings are
+    <div role="note" className="border-line bg-surface-muted w-full border-b">
+      <p className="text-quiet mx-auto max-w-6xl px-4 py-2 text-xs sm:px-6">
+        <span className="text-ink font-bold">Portfolio demo.</span> Listings are
         seeded sample data, a simulator posts offers every few minutes, and the
         AI analysis has a small shared daily budget.
       </p>

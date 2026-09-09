@@ -17,8 +17,8 @@ describe("Home (server render)", () => {
       </QueryClientProvider>,
     );
 
-    // Grid button carries the active (bg-white) style in the SSR output.
-    expect(html).toContain("Grid");
+    // The Cards/Rows toggle renders with Cards active in the SSR output.
+    expect(html).toContain("Cards");
     expect(html).toContain("loading...");
   });
 });

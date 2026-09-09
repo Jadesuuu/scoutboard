@@ -13,6 +13,8 @@ A realtime small-business marketplace: browse listings, make offers, watch them 
 ## What it does
 
 - **Listings** — validated creation (global `ValidationPipe` with `whitelist` + `forbidNonWhitelisted`: undeclared fields are rejected loudly, so mass-assignment attempts like `views: 50000` fail at the door), browse grid, detail pages with a Redis-backed view counter.
+- **Deal metrics** — every listing carries optional owner cash flow alongside revenue, and the UI derives the figures buyers actually screen on: annual revenue, annual cash flow, asking multiple (price ÷ annual revenue) and cash-flow multiple (price ÷ annual cash flow, i.e. years to earn the price back). Browse sorts on lowest multiple and the market strip reports medians.
+- **Verified financials** — a `verified` badge granted by the platform through an admin-guarded `PATCH /listings/:id/verify`, never claimable by the seller.
 - **Offers** — separate feature module referencing listings by ObjectId; created via `POST /listings/:id/offers`, rate-limited, broadcast over WebSocket to every open detail page in realtime.
 - **AI listing analyst** — `POST /listings/:id/analyze` returns structured JSON (verdict, fair-value range, reasoning bullets, suggested opening offer) computed from the listing's price/revenue multiple and offer activity.
 - **Two cron jobs** — a reconciler (real operational work) and a market simulator (labeled demo theater — see below).
@@ -30,6 +32,10 @@ A realtime small-business marketplace: browse listings, make offers, watch them 
 **Provider-agnostic AI.** The analyzer talks to `AI_BASE_URL`/`AI_MODEL`/`AI_API_KEY` — OpenAI isn't named anywhere in code, so switching to a compatible provider (xAI etc.) is an env change. The model is instructed to return only JSON; the response is fence-stripped and parsed defensively with a graceful fallback. No LangChain: this is a single completion call, and orchestration frameworks earn their keep at multi-step pipelines (RAG, tool use) — the next step here would be LangFuse tracing for latency/token-cost observability.
 
 **One honest cron, one labeled theater.** `reconcileOffersCounts` is what schedulers are actually for — reconciliation sweeps on derived data. `scheduledRandomOffer` is a **demo-mode market simulator**: it `$sample`s a random listing and creates a realistic offer (60–110% of asking) through the *real* `OffersService.create`, so validation, counters, invalidation, and broadcasts all fire. It exists so the realtime features are visible without manual input, it's gated behind `SIMULATOR_ENABLED=true`, and it goes through the front door precisely so the demo can't drift from production behavior.
+
+**Verification is a platform decision, so it isn't a listing field.** `verified` is absent from `CreateListingDto` on purpose: if a seller could set it while creating a listing, the badge would mean nothing. It moves only through `PATCH /listings/:id/verify` behind the same `AdminKeyGuard` as the destructive routes, and the seed script calls that route as a second step after creating each listing. Cash flow is the opposite case — it *is* seller-supplied, and it's optional, because plenty of owners list before they have a clean number. Optional means genuinely absent rather than zero: the UI renders an em dash, since a `$0` cash flow reads as "this business earns nothing" instead of "not stated".
+
+**Photography is committed, not hotlinked.** Listing and hero imagery comes from CC0 (public-domain) photos discovered through the [Openverse](https://openverse.org) API, re-encoded to width-capped WebP and committed under `scoutboard-frontend/public/photos` — about 2.6 MB for 26 images. Hotlinking a third-party CDN would have kept the repo smaller and broken the demo the day an upstream file moved. `scripts/build-photos.mjs` re-downloads and regenerates the typed manifest from `scripts/photo-sources.json`, so the choice stays auditable; CC0 waives attribution but the photographers are credited at `/credits` anyway. Photos are matched to a listing by keywords in its *name* rather than its industry, because "Harbor Street Laundromat" and "Ledger Lane Bookkeeping" are both `services` and should not share a picture.
 
 **Deliberate rescopes, named.** The browse page is a card grid, not a data table — the right UI for a consumer marketplace (tables fit admin/backoffice views); sorting/filtering are client-side because the client holds the whole dataset at this size, and the migration path (server-side `manualSorting` + query params + indexed sort fields) is understood. The offer rate limit is currently a single shared bucket; keyed per-user is the correct production shape and lands with auth.
 
@@ -58,6 +64,18 @@ cd ..
 pnpm -r --parallel dev      # backend :3000, frontend :3001
 pnpm --filter scoutboard-backend seed   # 12 realistic listings via the real POST /listings endpoint
 ```
+
+Seeding creates each listing through `POST /listings`, then grants the verified
+badge to eight of the twelve through `PATCH /listings/:id/verify`. If the API has
+`ADMIN_API_KEY` set, give the seed the same value so the verify calls are accepted:
+
+```bash
+ADMIN_API_KEY=<same-as-api> pnpm --filter scoutboard-backend seed
+```
+
+Listings seeded before `monthlyCashFlow` and `verified` existed keep working —
+the cash-flow figures render as em dashes and no badge shows. Re-seed to get the
+new fields populated.
 
 ## Deploying (Vercel + Render)
 

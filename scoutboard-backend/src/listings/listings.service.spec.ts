@@ -134,6 +134,37 @@ describe('ListingsService', () => {
     });
   });
 
+  describe('setVerified()', () => {
+    it('sets the flag and invalidates the browse cache', async () => {
+      const updated = { _id: 'l1', verified: true };
+      listingModel.findByIdAndUpdate.mockResolvedValue(updated);
+
+      await expect(service.setVerified('l1', true)).resolves.toBe(updated);
+
+      expect(listingModel.findByIdAndUpdate).toHaveBeenCalledWith(
+        'l1',
+        { $set: { verified: true } },
+        { new: true },
+      );
+      // `verified` is rendered inside the cached list payload, so the cached
+      // browse response has to go.
+      expect(mockRedis.del).toHaveBeenCalledWith('listings');
+    });
+
+    it('can revoke verification too', async () => {
+      listingModel.findByIdAndUpdate.mockResolvedValue({ verified: false });
+
+      await service.setVerified('l1', false);
+
+      expect(listingModel.findByIdAndUpdate).toHaveBeenCalledWith(
+        'l1',
+        { $set: { verified: false } },
+        { new: true },
+      );
+      expect(mockRedis.del).toHaveBeenCalledWith('listings');
+    });
+  });
+
   describe('deleteById()', () => {
     it('deletes the listing, cascades its offers and invalidates the cache', async () => {
       await service.deleteById('l1');

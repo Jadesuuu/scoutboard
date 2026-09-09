@@ -4,20 +4,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { io } from "socket.io-client";
 
-export interface ListingProps {
-  _id: string;
-  title: string;
-  industry: string;
-  location: string;
-  askingPrice: number;
-  monthlyRevenue: number;
-  description: string;
-  createdAt: string;
-  updatedAt: string;
-  offersCount: number;
-  views: number;
-  establishedYear: number;
-}
+import type { Listing } from "@/lib/listing";
+
+/** Kept as a named re-export; `Listing` in lib/listing.ts is the source shape. */
+export type ListingProps = Listing;
 
 export function useLiveListingUpdates() {
   const queryClient = useQueryClient();

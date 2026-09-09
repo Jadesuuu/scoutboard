@@ -1,37 +1,28 @@
 import type { Metadata } from "next";
-import {
-  Geist,
-  Geist_Mono,
-  Noto_Sans,
-  Playfair_Display,
-} from "next/font/google";
+import { Libre_Franklin } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Providers } from "./provider";
 import Navbar from "@/components/layout/navbar";
 import DemoBanner from "@/components/layout/demo-banner";
+import SiteFooter from "@/components/layout/site-footer";
 import { Toaster } from "@/components/ui/sonner";
 
-const playfairDisplayHeading = Playfair_Display({
+/**
+ * One typeface for the whole page. The design gets its hierarchy from weight
+ * (400 through 900) and tight tracking, so rather than pulling six static
+ * weights we take the variable font — one file that covers the whole range.
+ */
+const libreFranklin = Libre_Franklin({
   subsets: ["latin"],
-  variable: "--font-heading",
-});
-
-const notoSans = Noto_Sans({ subsets: ["latin"], variable: "--font-sans" });
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "Scoutboard",
-  description: "businesses by businesses",
+  title: "ScoutBoard — buy a real business with real numbers",
+  description:
+    "A marketplace for independent main-street businesses, with the books open and every offer in view.",
 };
 
 export default function RootLayout({
@@ -45,17 +36,17 @@ export default function RootLayout({
       className={cn(
         "h-full",
         "antialiased",
-        geistSans.variable,
-        geistMono.variable,
+        libreFranklin.variable,
         "font-sans",
-        notoSans.variable,
-        playfairDisplayHeading.variable,
       )}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="bg-paper text-ink flex min-h-full flex-col text-[15px]">
         <Navbar />
         <DemoBanner />
-        <Providers>{children}</Providers>
+        <Providers>
+          <main className="flex-1">{children}</main>
+        </Providers>
+        <SiteFooter />
         <Toaster />
       </body>
     </html>

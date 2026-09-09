@@ -18,6 +18,14 @@ export class ListingRecord {
   @Prop({ required: true })
   monthlyRevenue: number;
 
+  /**
+   * Owner's monthly cash flow (seller's discretionary earnings). Optional:
+   * listings created before this field existed carry no value for it, and the
+   * UI shows an em dash rather than inventing one.
+   */
+  @Prop()
+  monthlyCashFlow?: number;
+
   @Prop({ required: true })
   location: string;
 
@@ -29,6 +37,14 @@ export class ListingRecord {
 
   @Prop({ default: 0 })
   offersCount: number;
+
+  /**
+   * Set by the platform once a seller's books have been checked, never by the
+   * seller — so it is absent from CreateListingDto and only movable through
+   * the admin-guarded `PATCH :id/verify` route.
+   */
+  @Prop({ default: false })
+  verified: boolean;
 
   createdAt?: Date;
   updatedAt?: Date;

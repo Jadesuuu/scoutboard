@@ -10,6 +10,7 @@ describe('ListingsController', () => {
     findAll: jest.Mock;
     countViews: jest.Mock;
     analyze: jest.Mock;
+    setVerified: jest.Mock;
     deleteById: jest.Mock;
   };
 
@@ -19,6 +20,7 @@ describe('ListingsController', () => {
       findAll: jest.fn(),
       countViews: jest.fn(),
       analyze: jest.fn(),
+      setVerified: jest.fn(),
       deleteById: jest.fn(),
     };
 
@@ -74,6 +76,23 @@ describe('ListingsController', () => {
 
     await expect(controller.analyze('l1')).resolves.toBe(expected);
     expect(service.analyze).toHaveBeenCalledWith('l1');
+  });
+
+  it('verify() delegates to the service with the id and flag', async () => {
+    const expected = { _id: 'l1', verified: true };
+    service.setVerified.mockResolvedValue(expected);
+
+    await expect(controller.verify('l1', { verified: true })).resolves.toBe(
+      expected,
+    );
+    expect(service.setVerified).toHaveBeenCalledWith('l1', true);
+  });
+
+  it('verify() passes a revocation through unchanged', async () => {
+    service.setVerified.mockResolvedValue({ _id: 'l1', verified: false });
+
+    await controller.verify('l1', { verified: false });
+    expect(service.setVerified).toHaveBeenCalledWith('l1', false);
   });
 
   it('delete() delegates to the service with the id', async () => {
