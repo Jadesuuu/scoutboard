@@ -1,4 +1,12 @@
-import { IsIn, IsNumber, IsString, Max, MaxLength, Min } from 'class-validator';
+import {
+  IsIn,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+} from 'class-validator';
 
 export class CreateListingDto {
   @IsString()
@@ -20,6 +28,15 @@ export class CreateListingDto {
   @IsNumber()
   @Min(0)
   monthlyRevenue: number;
+
+  /**
+   * Optional — plenty of sellers list before they have a clean cash-flow
+   * figure, and a wrong number is worse than a missing one.
+   */
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  monthlyCashFlow?: number;
 
   @IsString()
   @MaxLength(500)

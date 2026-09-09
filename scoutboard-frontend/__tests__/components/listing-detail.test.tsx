@@ -23,10 +23,12 @@ const LISTING = {
   location: "NYC",
   askingPrice: 120000,
   monthlyRevenue: 5000,
+  monthlyCashFlow: 1500,
   description: "A cozy cafe",
   views: 42,
   offersCount: 2,
   establishedYear: 2015,
+  verified: true,
 };
 
 const OFFERS: OfferProps[] = [
@@ -91,6 +93,18 @@ function renderDetail() {
   );
 }
 
+/**
+ * The sidebar and the mobile action bar both offer the CTA; CSS hides one per
+ * viewport, but jsdom applies no CSS so both are in the tree.
+ */
+const offerButtons = () =>
+  screen.getAllByRole("button", { name: "Make an offer" });
+
+async function openOfferModal() {
+  const buttons = await waitFor(() => offerButtons());
+  fireEvent.click(buttons[0]);
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   vi.unstubAllGlobals();
@@ -114,44 +128,83 @@ describe("ListingDetail", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders the listing, stats and offers", async () => {
+  it("renders the listing, metrics and offers", async () => {
     stubFetch(happyRoutes());
     renderDetail();
 
     expect(await screen.findByText("Copper Kettle")).toBeInTheDocument();
-    expect(screen.getByText("food · NYC")).toBeInTheDocument();
+    expect(
+      screen.getByText(/Food · NYC · Established 2015/),
+    ).toBeInTheDocument();
     expect(screen.getByText("A cozy cafe")).toBeInTheDocument();
-    expect(screen.getByText("$5,000")).toBeInTheDocument(); // monthly revenue
-    expect(screen.getByText("2015")).toBeInTheDocument();
-    expect(screen.getByText("$120,000")).toBeInTheDocument(); // asking price
-    expect(screen.getByText("42 views · 2 offers")).toBeInTheDocument();
+    expect(screen.getByText("Financials verified")).toBeInTheDocument();
 
-    // Offers list
+    // Metric tiles, annualised from the monthly figures.
+    expect(screen.getByText("$60k")).toBeInTheDocument(); // revenue / yr
+    expect(screen.getByText("$18k")).toBeInTheDocument(); // cash flow / yr
+    expect(screen.getByText("2.00×")).toBeInTheDocument(); // asking multiple
+    expect(screen.getByText("6.67×")).toBeInTheDocument(); // cash flow multiple
+    expect(screen.getByText("Cash flow multiple")).toBeInTheDocument();
+
+    // Sidebar. The asking price also repeats in the mobile action bar, which
+    // CSS hides on desktop but jsdom still renders.
+    expect(screen.getAllByText("$120,000").length).toBeGreaterThan(0);
+    expect(screen.getByText("42 watching · 2 offers")).toBeInTheDocument();
+
+    // Offers, highest first, with the leading one flagged.
     expect(screen.getByText("$90,000")).toBeInTheDocument();
     expect(screen.getByText(/Jane Doe ·/)).toBeInTheDocument();
     expect(screen.getByText("$85,000")).toBeInTheDocument();
     expect(screen.getByText(/Sam Roe ·/)).toBeInTheDocument();
+    expect(screen.getByText("Leading")).toBeInTheDocument();
+    expect(screen.getByText("75% of ask")).toBeInTheDocument();
   });
 
-  it('shows "No offers yet." when the listing has no offers', async () => {
+  it("omits the verified badge for an unverified listing", async () => {
+    stubFetch({
+      "GET /listings/l1": () => ({ ...LISTING, verified: false }),
+      "GET /listings/l1/offers": () => OFFERS,
+    });
+    renderDetail();
+    await screen.findByText("Copper Kettle");
+    expect(screen.queryByText("Financials verified")).not.toBeInTheDocument();
+  });
+
+  it("shows an em dash for a listing with no cash-flow figure", async () => {
+    stubFetch({
+      "GET /listings/l1": () => ({ ...LISTING, monthlyCashFlow: undefined }),
+      "GET /listings/l1/offers": () => [],
+    });
+    renderDetail();
+    await screen.findByText("Copper Kettle");
+    // Cash flow / yr and cash-flow multiple both fall back.
+    expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("shows the empty offer state when the listing has no offers", async () => {
     stubFetch({
       "GET /listings/l1": () => LISTING,
       "GET /listings/l1/offers": () => [],
     });
     renderDetail();
-    expect(await screen.findByText("No offers yet.")).toBeInTheDocument();
+    expect(
+      await screen.findByText(/No offers yet\. Yours would be the first/),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Open to first offer")).toBeInTheDocument();
   });
 
-  it('shows "No offers yet." while offers are still undefined (offers query failed)', async () => {
+  it("shows the empty offer state when the offers query failed", async () => {
     stubFetch({
       "GET /listings/l1": () => LISTING,
       "GET /listings/l1/offers": () => new Error("boom"),
     });
     renderDetail();
-    expect(await screen.findByText("No offers yet.")).toBeInTheDocument();
+    expect(
+      await screen.findByText(/No offers yet\. Yours would be the first/),
+    ).toBeInTheDocument();
   });
 
-  it("renders the page shell with optional fields blank while the listing is still loading", async () => {
+  it("renders the page shell with optional fields blank while the listing loads", async () => {
     // Offers resolve, listing hangs: page renders with listing undefined.
     stubFetch({
       "GET /listings/l1/offers": () => OFFERS,
@@ -164,22 +217,29 @@ describe("ListingDetail", () => {
   });
 
   describe("make an offer", () => {
-    async function openModal() {
-      stubFetch({
-        ...happyRoutes(),
-        "POST /listings/l1/offers": () => ({ _id: "o3" }),
-      });
-      renderDetail();
-      fireEvent.click(
-        await screen.findByRole("button", { name: "Make an offer" }),
-      );
-      return screen.getByText("Make an offer", { selector: "div" });
-    }
-
     it("opens the modal with the listing summary", async () => {
-      await openModal();
+      stubFetch(happyRoutes());
+      renderDetail();
+      await screen.findByText("Copper Kettle");
+      await openOfferModal();
+
       expect(
         screen.getByText(/on Copper Kettle · asking \$120,000/),
+      ).toBeInTheDocument();
+    });
+
+    it("shows how the typed offer reads against the ask", async () => {
+      stubFetch(happyRoutes());
+      renderDetail();
+      await screen.findByText("Copper Kettle");
+      await openOfferModal();
+
+      fireEvent.change(screen.getByLabelText("Your offer (USD)"), {
+        target: { value: "99000" },
+      });
+
+      expect(
+        screen.getByText(/83% of ask · \$21,000 below ask/),
       ).toBeInTheDocument();
     });
 
@@ -189,14 +249,13 @@ describe("ListingDetail", () => {
         "POST /listings/l1/offers": () => ({ _id: "o3" }),
       });
       renderDetail();
-      fireEvent.click(
-        await screen.findByRole("button", { name: "Make an offer" }),
-      );
+      await screen.findByText("Copper Kettle");
+      await openOfferModal();
 
-      fireEvent.change(screen.getByRole("textbox"), {
+      fireEvent.change(screen.getByLabelText("Your name"), {
         target: { value: "New Bidder" },
       });
-      fireEvent.change(screen.getByRole("spinbutton"), {
+      fireEvent.change(screen.getByLabelText("Your offer (USD)"), {
         target: { value: "99000" },
       });
       fireEvent.click(screen.getByRole("button", { name: "Submit offer" }));
@@ -220,9 +279,8 @@ describe("ListingDetail", () => {
         "POST /listings/l1/offers": () => new Error("boom"),
       });
       renderDetail();
-      fireEvent.click(
-        await screen.findByRole("button", { name: "Make an offer" }),
-      );
+      await screen.findByText("Copper Kettle");
+      await openOfferModal();
       fireEvent.click(screen.getByRole("button", { name: "Submit offer" }));
 
       await waitFor(() => expect(toast.error).toHaveBeenCalled());
@@ -232,11 +290,10 @@ describe("ListingDetail", () => {
     it("closes and resets via the Cancel button", async () => {
       stubFetch(happyRoutes());
       renderDetail();
-      fireEvent.click(
-        await screen.findByRole("button", { name: "Make an offer" }),
-      );
+      await screen.findByText("Copper Kettle");
+      await openOfferModal();
 
-      fireEvent.change(screen.getByRole("textbox"), {
+      fireEvent.change(screen.getByLabelText("Your name"), {
         target: { value: "typed" },
       });
       fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
@@ -245,16 +302,15 @@ describe("ListingDetail", () => {
       ).not.toBeInTheDocument();
 
       // Re-open: the form was reset.
-      fireEvent.click(screen.getByRole("button", { name: "Make an offer" }));
-      expect(screen.getByRole("textbox")).toHaveValue("");
+      await openOfferModal();
+      expect(screen.getByLabelText("Your name")).toHaveValue("");
     });
 
     it("closes on backdrop click but not on clicks inside the card", async () => {
       stubFetch(happyRoutes());
       renderDetail();
-      fireEvent.click(
-        await screen.findByRole("button", { name: "Make an offer" }),
-      );
+      await screen.findByText("Copper Kettle");
+      await openOfferModal();
 
       const backdrop = document.querySelector(".fixed.inset-0")!;
       const insideCard = screen.getByText(/on Copper Kettle/);
@@ -306,7 +362,9 @@ describe("ListingDetail", () => {
       resolveAnalysis(ANALYSIS);
 
       expect(await screen.findByText("Fairly priced")).toBeInTheDocument();
-      expect(screen.getByText("$100,000 – $140,000")).toBeInTheDocument();
+      expect(screen.getByText("Fair value range")).toBeInTheDocument();
+      // The band renders the range compactly.
+      expect(screen.getByText("$100k – $140k")).toBeInTheDocument();
       expect(screen.getByText("Steady revenue")).toBeInTheDocument();
       expect(screen.getByText("Prime location")).toBeInTheDocument();
       expect(
@@ -314,11 +372,30 @@ describe("ListingDetail", () => {
       ).toBeInTheDocument();
     });
 
+    it("plots the asking price against the fair-value range", async () => {
+      stubFetch({
+        ...happyRoutes(),
+        "POST /listings/l1/analyze": () => ANALYSIS,
+      });
+      renderDetail();
+
+      fireEvent.click(
+        await screen.findByRole("button", { name: "✦ Analyze with AI" }),
+      );
+
+      expect(
+        await screen.findByRole("img", {
+          name: /Fair value \$100k to \$140k, asking \$120k/,
+        }),
+      ).toBeInTheDocument();
+    });
+
     it("shows the API's message when AI is unavailable (no key / budget spent)", async () => {
       stubFetch({
         ...happyRoutes(),
         "POST /listings/l1/analyze": () => ({
-          error: "The AI analysis demo has hit its daily budget. Try again tomorrow.",
+          error:
+            "The AI analysis demo has hit its daily budget. Try again tomorrow.",
         }),
       });
       renderDetail();
@@ -333,7 +410,7 @@ describe("ListingDetail", () => {
         ),
       ).toBeInTheDocument();
       expect(screen.getByText("✦ AI ANALYSIS")).toBeInTheDocument();
-      expect(screen.queryByText(/Estimated fair value/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Fair value range/)).not.toBeInTheDocument();
     });
 
     it("renders nothing extra when the analysis request fails", async () => {
@@ -369,9 +446,7 @@ describe("ListingDetail", () => {
         "Successfully deleted business",
         expect.anything(),
       );
-      expect(
-        calls.some((c) => c.init?.method === "DELETE"),
-      ).toBe(true);
+      expect(calls.some((c) => c.init?.method === "DELETE")).toBe(true);
     });
 
     it("does not navigate when the delete fails", async () => {

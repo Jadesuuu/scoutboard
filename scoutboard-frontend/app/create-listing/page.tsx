@@ -1,20 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+
+import { INDUSTRIES } from "@/lib/listing";
 
 interface createListingBody {
   title: string;
@@ -22,11 +13,24 @@ interface createListingBody {
   industry: string;
   establishedYear: number;
   monthlyRevenue: number;
+  /** Optional on the API too — omitted from the request when left blank. */
+  monthlyCashFlow: number;
   location: string;
   description: string;
 }
 
 type FormErrors = Partial<Record<keyof createListingBody, string>>;
+
+const EMPTY_FORM: createListingBody = {
+  title: "",
+  askingPrice: 0,
+  industry: "food",
+  establishedYear: 0,
+  monthlyRevenue: 0,
+  monthlyCashFlow: 0,
+  location: "",
+  description: "",
+};
 
 function validateForm(f: createListingBody) {
   const e: FormErrors = {};
@@ -40,31 +44,37 @@ function validateForm(f: createListingBody) {
     f.establishedYear > new Date().getFullYear()
   )
     e.establishedYear = "Enter a valid year";
+  // Cash flow is optional, but a figure above revenue is a typo, not a business.
+  if (f.monthlyCashFlow > 0 && f.monthlyCashFlow > f.monthlyRevenue)
+    e.monthlyCashFlow = "Cash flow can't exceed revenue";
   return e;
 }
+
+const LABEL =
+  "block text-[10.5px] font-extrabold tracking-[0.1em] text-faint uppercase";
+const INPUT =
+  "w-full rounded-[10px] border-[1.5px] border-line-strong bg-white px-3 py-3 text-[14.5px] text-ink focus:border-brand focus:outline-none";
 
 export default function ListingForm() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const [form, setForm] = useState<createListingBody>({
-    title: "",
-    askingPrice: 0,
-    industry: "food",
-    establishedYear: 0,
-    monthlyRevenue: 0,
-    location: "",
-    description: "",
-  });
+  const [form, setForm] = useState<createListingBody>(EMPTY_FORM);
   const [errors, setErrors] = useState<FormErrors>({});
 
   const { mutate, isPending } = useMutation({
     mutationFn: async (formData: createListingBody) => {
+      // `monthlyCashFlow` is optional on the API; send it only when given so a
+      // blank field stays absent rather than becoming a real zero.
+      const { monthlyCashFlow, ...rest } = formData;
+      const body =
+        monthlyCashFlow > 0 ? { ...rest, monthlyCashFlow } : { ...rest };
+
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/listings`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(body),
       });
 
       if (!res.ok) throw new Error(`API Error: ${res.status}`);
@@ -72,15 +82,7 @@ export default function ListingForm() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["businessList"] });
-      setForm({
-        title: "",
-        askingPrice: 0,
-        industry: "food",
-        establishedYear: 0,
-        monthlyRevenue: 0,
-        location: "",
-        description: "",
-      });
+      setForm(EMPTY_FORM);
       toast.success("Successfully registered your business", {
         position: "bottom-right",
       });
@@ -93,166 +95,183 @@ export default function ListingForm() {
   });
 
   return (
-    <div className="mx-auto min-w-2xl max-w-2xl px-6 py-10">
-      {/* Cancel link */}
-      <a
-        className="text-sm text-stone-400 hover:text-stone-600"
+    <div className="animate-sb-fade-in mx-auto max-w-[620px] px-4 py-8 sm:px-6 sm:py-12">
+      <button
+        type="button"
+        className="text-quiet hover:text-brand mb-4 text-[13px] font-bold"
         onClick={() => router.back()}
       >
         ← Cancel
-      </a>
+      </button>
 
-      {/* Heading */}
-      <h1 className="mt-6 font-serif text-3xl text-stone-900">
+      <h1 className="m-0 mb-2.5 text-[clamp(27px,5.5vw,38px)] leading-tight tracking-[-0.038em]">
         List your business
       </h1>
-      <p className="mt-2 text-sm text-stone-500">
-        A few basics to get started. You can add more later.
+      <p className="text-quiet m-0 mb-7 text-[15.5px] leading-relaxed">
+        Buyers on ScoutBoard filter on numbers first. Fill in what you can —
+        revenue and cash flow drive the offers you get.
       </p>
 
-      {/* Form */}
-      <div className="mt-8 space-y-6">
-        {/* Business name */}
+      <div className="border-line bg-surface flex flex-col gap-4 rounded-2xl border p-5 sm:gap-[18px] sm:p-6">
         <div className="space-y-2">
-          <Label htmlFor="name">Business name</Label>
-          <Input
+          <label className={LABEL} htmlFor="name">
+            Business name
+          </label>
+          <input
             value={form.title}
             id="name"
             maxLength={120}
-            placeholder="e.g. The Copper Kettle"
+            placeholder="The Copper Kettle"
+            className={INPUT}
             onChange={(e) => setForm({ ...form, title: e.target.value })}
           />
-          {errors.title && (
-            <p className="text-xs text-red-500">{errors.title}</p>
-          )}
+          {errors.title && <FieldError>{errors.title}</FieldError>}
         </div>
 
-        {/* Category + Location side by side */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label>Category</Label>
-            <Select
+        <div className="flex flex-wrap gap-4">
+          <div className="min-w-0 flex-1 basis-40 space-y-2">
+            <label className={LABEL} htmlFor="industry">
+              Category
+            </label>
+            <select
+              id="industry"
               value={form.industry}
-              onValueChange={(value) =>
-                setForm({ ...form, industry: value ?? "food" })
+              className={`${INPUT} cursor-pointer`}
+              onChange={(e) =>
+                setForm({ ...form, industry: e.target.value || "food" })
               }
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Coffee Shop" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="food">Food</SelectItem>
-                <SelectItem value="retail">Retail</SelectItem>
-                <SelectItem value="services">Services</SelectItem>
-                <SelectItem value="tech">Tech</SelectItem>
-                <SelectItem value="others">Others</SelectItem>
-              </SelectContent>
-            </Select>
+              {INDUSTRIES.map((i) => (
+                <option key={i.value} value={i.value}>
+                  {i.label}
+                </option>
+              ))}
+            </select>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="location">Location</Label>
-            <Input
+          <div className="min-w-0 flex-1 basis-40 space-y-2">
+            <label className={LABEL} htmlFor="location">
+              Location
+            </label>
+            <input
               id="location"
-              placeholder="City, State"
+              placeholder="Portland, OR"
+              className={INPUT}
               value={form.location}
               onChange={(e) => setForm({ ...form, location: e.target.value })}
             />
-            {errors.location && (
-              <p className="text-xs text-red-500">{errors.location}</p>
-            )}
+            {errors.location && <FieldError>{errors.location}</FieldError>}
           </div>
         </div>
 
-        {/* Monthly Revenue + Year Established */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label>Monthly Revenue</Label>
-            <div className="relative">
-              <span className=" absolute left-3 top-1/2 -translate-y-1/2 text-sm text-stone-400">
-                $
-              </span>
-              <Input
-                id="price"
-                type="number"
-                placeholder="400"
-                className="pl-7"
-                min={1}
-                value={form.monthlyRevenue}
-                onChange={(e) =>
-                  setForm({ ...form, monthlyRevenue: Number(e.target.value) })
-                }
-              />
-            </div>
-            {errors.monthlyRevenue && (
-              <p className="text-xs text-red-500">{errors.monthlyRevenue}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="yearEstablished">Year Established</Label>
-            <Input
-              id="yearEstablished"
-              placeholder="2000"
-              inputMode="numeric"
-              maxLength={4}
-              value={form.establishedYear === 0 ? "" : form.establishedYear}
-              onChange={(e) => {
-                // Digits only, max 4: typing letters used to produce NaN.
-                const digits = e.target.value.replace(/\D/g, "").slice(0, 4);
-                setForm({
-                  ...form,
-                  establishedYear: digits === "" ? 0 : Number(digits),
-                });
-              }}
-            />
-            {errors.establishedYear && (
-              <p className="text-xs text-red-500">{errors.establishedYear}</p>
-            )}
-          </div>
-        </div>
-
-        {/* Asking price */}
-        <div className="space-y-2">
-          <Label htmlFor="price">Asking price</Label>
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-stone-400">
-              $
-            </span>
-            <Input
-              id="price"
+        <div className="flex flex-wrap gap-4">
+          <div className="min-w-0 flex-1 basis-36 space-y-2">
+            <label className={LABEL} htmlFor="askingPrice">
+              Asking price
+            </label>
+            <input
+              id="askingPrice"
               type="number"
-              placeholder="120000"
-              className="pl-7"
-              min={1}
-              value={form.askingPrice}
+              min={0}
+              placeholder="145000"
+              className={INPUT}
+              value={form.askingPrice === 0 ? "" : form.askingPrice}
               onChange={(e) =>
                 setForm({ ...form, askingPrice: Number(e.target.value) })
               }
             />
+            {errors.askingPrice && <FieldError>{errors.askingPrice}</FieldError>}
           </div>
-          {errors.askingPrice && (
-            <p className="text-xs text-red-500">{errors.askingPrice}</p>
+
+          <div className="min-w-0 flex-1 basis-36 space-y-2">
+            <label className={LABEL} htmlFor="monthlyRevenue">
+              Monthly revenue
+            </label>
+            <input
+              id="monthlyRevenue"
+              type="number"
+              min={0}
+              placeholder="22000"
+              className={INPUT}
+              value={form.monthlyRevenue === 0 ? "" : form.monthlyRevenue}
+              onChange={(e) =>
+                setForm({ ...form, monthlyRevenue: Number(e.target.value) })
+              }
+            />
+            {errors.monthlyRevenue && (
+              <FieldError>{errors.monthlyRevenue}</FieldError>
+            )}
+          </div>
+
+          <div className="min-w-0 flex-1 basis-36 space-y-2">
+            <label className={LABEL} htmlFor="monthlyCashFlow">
+              Monthly cash flow
+            </label>
+            <input
+              id="monthlyCashFlow"
+              type="number"
+              min={0}
+              placeholder="5200"
+              className={INPUT}
+              value={form.monthlyCashFlow === 0 ? "" : form.monthlyCashFlow}
+              onChange={(e) =>
+                setForm({ ...form, monthlyCashFlow: Number(e.target.value) })
+              }
+            />
+            {errors.monthlyCashFlow ? (
+              <FieldError>{errors.monthlyCashFlow}</FieldError>
+            ) : (
+              <p className="text-faint text-[11.5px]">
+                Optional — owner&apos;s take-home
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <label className={LABEL} htmlFor="yearEstablished">
+            Year established
+          </label>
+          <input
+            id="yearEstablished"
+            placeholder="2016"
+            inputMode="numeric"
+            maxLength={4}
+            className={`${INPUT} max-w-40`}
+            value={form.establishedYear === 0 ? "" : form.establishedYear}
+            onChange={(e) => {
+              // Digits only, max 4: typing letters used to produce NaN.
+              const digits = e.target.value.replace(/\D/g, "").slice(0, 4);
+              setForm({
+                ...form,
+                establishedYear: digits === "" ? 0 : Number(digits),
+              });
+            }}
+          />
+          {errors.establishedYear && (
+            <FieldError>{errors.establishedYear}</FieldError>
           )}
         </div>
 
-        {/* Description */}
         <div className="space-y-2">
-          <Label htmlFor="description">Description</Label>
-          <Textarea
+          <label className={LABEL} htmlFor="description">
+            Description
+          </label>
+          <textarea
             id="description"
-            placeholder="What makes this business special? Regulars, location, what's included..."
+            placeholder="Staff, lease terms, equipment, why you're selling…"
             rows={4}
             maxLength={2000}
+            className={`${INPUT} resize-y leading-relaxed`}
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
           />
         </div>
 
-        {/* Actions */}
-        <div className="flex gap-3">
-          <Button
-            className="bg-[#c0603a] text-white hover:bg-[#a85230] rounded-lg"
+        <div className="flex flex-wrap gap-2.5">
+          <button
+            type="button"
+            className="bg-brand hover:bg-brand-hover rounded-[10px] px-6 py-3 text-[14.5px] font-bold text-white transition-colors disabled:opacity-60"
             onClick={() => {
               const e = validateForm(form);
               setErrors(e);
@@ -261,16 +280,22 @@ export default function ListingForm() {
             disabled={isPending}
           >
             Publish listing
-          </Button>
-          <Button
-            className="rounded-lg"
-            variant="outline"
+          </button>
+          <button
+            type="button"
+            className="border-line-strong text-ink hover:border-muted rounded-[10px] border-[1.5px] bg-white px-5 py-3 text-[14.5px] font-bold transition-colors"
             onClick={() => router.back()}
           >
             Cancel
-          </Button>
+          </button>
         </div>
       </div>
     </div>
+  );
+}
+
+function FieldError({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-negative text-[12.5px] font-semibold">{children}</p>
   );
 }

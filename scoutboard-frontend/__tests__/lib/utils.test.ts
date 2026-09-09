@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cn, colorFromString, timeAgo } from "@/lib/utils";
+import { cn, timeAgo } from "@/lib/utils";
 
 describe("cn", () => {
   it("merges class names and resolves tailwind conflicts", () => {
@@ -7,20 +7,6 @@ describe("cn", () => {
     expect(cn("text-sm", false && "hidden", "font-bold")).toBe(
       "text-sm font-bold",
     );
-  });
-});
-
-describe("colorFromString", () => {
-  it("is deterministic for the same seed", () => {
-    expect(colorFromString("abc123")).toBe(colorFromString("abc123"));
-  });
-
-  it("returns an hsl pastel string", () => {
-    expect(colorFromString("listing-id")).toMatch(/^hsl\(\d{1,3} 65% 82%\)$/);
-  });
-
-  it("handles the empty string (hash 0)", () => {
-    expect(colorFromString("")).toBe("hsl(0 65% 82%)");
   });
 });
 

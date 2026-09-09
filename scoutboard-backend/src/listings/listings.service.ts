@@ -68,6 +68,21 @@ export class ListingsService {
     return listings;
   }
 
+  /**
+   * Grant or revoke the verified badge. Invalidates the browse cache because
+   * `verified` is rendered inside the cached list payload, exactly like
+   * `offersCount`.
+   */
+  async setVerified(id: string, verified: boolean) {
+    const updated = await this.listingModel.findByIdAndUpdate(
+      id,
+      { $set: { verified } },
+      { new: true },
+    );
+    await this.redis.del('listings');
+    return updated;
+  }
+
   async deleteById(id: string) {
     await this.listingModel.findByIdAndDelete(id);
     await this.offerModel.deleteMany({ listingId: id });
