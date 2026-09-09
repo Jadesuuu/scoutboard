@@ -59,10 +59,12 @@ describe("Home", () => {
     vi.unstubAllGlobals();
   });
 
-  it("shows the loading state while fetching", () => {
+  it("shows the loading skeletons while fetching", () => {
     vi.stubGlobal("fetch", vi.fn().mockReturnValue(new Promise(() => {})));
     renderHome();
-    expect(screen.getByText("loading...")).toBeInTheDocument();
+    expect(
+      screen.getByRole("status", { name: "Loading listings" }),
+    ).toBeInTheDocument();
   });
 
   it("shows the error message when the API fails", async () => {
