@@ -17,12 +17,19 @@
  * ADMIN_API_KEY to match the API when its own ADMIN_API_KEY is set.
  */
 
+import { pathToFileURL } from 'node:url';
+
 const API_URL = (process.env.API_URL ?? 'http://localhost:3000').replace(
   /\/$/,
   '',
 );
 
-const listings = [
+/**
+ * The demo catalogue. Exported so `backfill-cashflow.mjs` can reuse these exact
+ * figures when repairing listings that were seeded before `monthlyCashFlow`
+ * existed, rather than keeping a second copy that could drift.
+ */
+export const listings = [
   {
     title: 'Copper Kettle Café',
     verified: true,
@@ -213,7 +220,11 @@ async function main() {
   if (ok !== listings.length) process.exitCode = 1;
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exitCode = 1;
-});
+// Only seed when run directly: importing this file for its data must not fire
+// off a dozen POSTs.
+if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
+  main().catch((err) => {
+    console.error(err);
+    process.exitCode = 1;
+  });
+}

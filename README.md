@@ -74,8 +74,38 @@ ADMIN_API_KEY=<same-as-api> pnpm --filter scoutboard-backend seed
 ```
 
 Listings seeded before `monthlyCashFlow` and `verified` existed keep working —
-the cash-flow figures render as em dashes and no badge shows. Re-seed to get the
-new fields populated.
+the cash-flow figures render as em dashes and no badge shows. Re-seeding gets the
+new fields populated on a fresh database.
+
+**Repairing a database you don't want to re-seed** (the deployed demo, say, where
+re-seeding would duplicate every listing and drop the offers already attached to
+them): `backfill-cashflow.mjs` fills in `monthlyCashFlow` in place, which is all
+the annual cash flow, cash-flow multiple, and margin figures are derived from. It
+talks to MongoDB directly, since no route edits a listing's financials, and needs
+no redeploy — the browse cache expires on its own within 60 s.
+
+```bash
+cd scoutboard-backend
+pnpm backfill:cashflow            # dry run, writes nothing
+pnpm backfill:cashflow --apply    # write
+```
+
+It reads `MONGODB_URI` from the environment, falling back to the API's own `.env`
+so the connection string can stay in the file that already holds it rather than
+going onto a command line and into shell history. To repair the deployed demo,
+point that at the Atlas string from the Render service and put it back afterwards.
+
+If the driver fails with `querySrv ECONNREFUSED`, the local resolver is refusing
+the SRV lookup that `mongodb+srv://` depends on — ordinary hostname lookups can
+still work, so this is easy to mistake for the cluster being down. Route the
+lookup elsewhere: `DNS_SERVERS=1.1.1.1,8.8.8.8 pnpm backfill:cashflow`.
+
+Listings whose titles match the seed catalogue get the authored figure back; the
+rest get an industry-typical margin applied to their own monthly revenue, so a
+UI-created listing lands in the same range instead of reading as an outlier. Both
+are deterministic — re-running never yields a different number. Anything with no
+revenue to derive from is left alone and reported, because a missing figure beats
+an invented one. Add `--overwrite` to recompute listings that already have a value.
 
 ## Deploying (Vercel + Render)
 
